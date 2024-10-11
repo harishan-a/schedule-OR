@@ -26,7 +26,7 @@ class App extends StatelessWidget {
     return MaterialApp(
       title: 'ORScheduler',
       theme: ThemeData.from(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 63, 17, 177)),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 238, 83, 12), primary: const Color.fromARGB(255, 253, 227, 206)),
         useMaterial3: true,
       ),
       home: StreamBuilder(
