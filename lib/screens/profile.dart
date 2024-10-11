@@ -10,37 +10,18 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = true;
   var _firstName = '';
   var _lastName = '';
   var _phoneNumber = '';
   var _email = '';
-  var _role = ''; // Track the role of the user
+  var _role = '';
   var _department = '';
-  bool _isLoading = true;
-  bool _isCustomDepartment = false; // Tracks whether "Other" is selected
-
-  // Predefined role and department lists
-  final List<String> _roles = [
-    'Doctor',
-    'Nurse',
-    'Admin',
-    'Surgical Coordinator',
-    'Technologist'
-  ];
-
-  final List<String> _departments = [
-    'Cardiology',
-    'Neurology',
-    'Radiology',
-    'Orthopedics',
-    'Other'
-  ];
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _loadUserData(); // Loads user data from Firebase Firestore
   }
 
   Future<void> _loadUserData() async {
@@ -53,58 +34,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _lastName = userData['lastName'] ?? '';
         _phoneNumber = userData['phoneNumber'] ?? '';
         _email = user.email ?? '';
-        _role = userData['role'] ?? ''; // Load user role
-        _department = userData['department'] ?? ''; // Load department
-        _isCustomDepartment = !_departments.contains(_department); // Determine if it's a custom department
+        _role = userData['role'] ?? '';
+        _department = userData['department'] ?? '';
         _isLoading = false;
       });
-    }
-  }
-
-  Future<void> _updateUserData() async {
-    final isValid = _formKey.currentState!.validate();
-    if (!isValid) return;
-
-    _formKey.currentState!.save();
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-        'firstName': _firstName,
-        'lastName': _lastName,
-        'phoneNumber': _phoneNumber,
-        'role': _role,
-        'department': _department, // Save the department, whether it's custom or predefined
-      });
-    }
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile updated successfully')),
-    );
-  }
-
-  Future<void> _changePassword() async {
-    final user = FirebaseAuth.instance.currentUser;
-
-    if (user != null) {
-      try {
-        await FirebaseAuth.instance.sendPasswordResetEmail(email: _email);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password reset email sent.')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to send password reset email: $e')),
-        );
-      }
     }
   }
 
@@ -112,160 +45,106 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
-        backgroundColor: Theme.of(context).colorScheme.primary,
+        title: const Text('Edit Profile'),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            Navigator.of(context).pop(); // Back navigation
+          },
+        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16),
-              child: Form(
-                key: _formKey,
-                child: ListView(
-                  children: [
-                    // First Name
-                    TextFormField(
-                      initialValue: _firstName,
-                      decoration: const InputDecoration(labelText: 'First Name'),
-                      onSaved: (value) {
-                        _firstName = value!;
-                      },
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your first name.';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    // Last Name
-                    TextFormField(
-                      initialValue: _lastName,
-                      decoration: const InputDecoration(labelText: 'Last Name'),
-                      onSaved: (value) {
-                        _lastName = value!;
-                      },
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your last name.';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    // Email (Read-only)
-                    TextFormField(
-                      initialValue: _email,
-                      decoration: const InputDecoration(labelText: 'Email'),
-                      readOnly: true,
-                    ),
-                    const SizedBox(height: 10),
-                    // Phone Number
-                    TextFormField(
-                      initialValue: _phoneNumber,
-                      decoration: const InputDecoration(labelText: 'Phone Number'),
-                      keyboardType: TextInputType.phone,
-                      onSaved: (value) {
-                        _phoneNumber = value!;
-                      },
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your phone number.';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    // Role Dropdown
-                    DropdownButtonFormField<String>(
-                      value: _role,
-                      decoration: const InputDecoration(labelText: 'Role'),
-                      items: _roles.map((String role) {
-                        return DropdownMenuItem<String>(
-                          value: role,
-                          child: Text(role),
-                        );
-                      }).toList(),
-                      onChanged: (String? value) {
-                        setState(() {
-                          _role = value!;
-                        });
-                      },
-                      onSaved: (String? value) {
-                        _role = value!;
-                      },
-                    ),
-                    const SizedBox(height: 10),
-                    // Department dropdown or custom input
-                    DropdownButtonFormField<String>(
-                      value: _isCustomDepartment ? 'Other' : _department,
-                      decoration: const InputDecoration(labelText: 'Department'),
-                      items: _departments.map((String department) {
-                        return DropdownMenuItem<String>(
-                          value: department,
-                          child: Text(department),
-                        );
-                      }).toList(),
-                      onChanged: (String? value) {
-                        setState(() {
-                          if (value == 'Other') {
-                            _isCustomDepartment = true;
-                            _department = ''; // Allow user to type in a custom department
-                          } else {
-                            _isCustomDepartment = false;
-                            _department = value!;
-                          }
-                        });
-                      },
-                      onSaved: (String? value) {
-                        if (!_isCustomDepartment) {
-                          _department = value!;
-                        }
-                      },
-                    ),
-                    if (_isCustomDepartment)
-                      TextFormField(
-                        decoration: const InputDecoration(labelText: 'Custom Department'),
-                        onSaved: (value) {
-                          _department = value!;
-                        },
-                        validator: (value) {
-                          if (_isCustomDepartment && (value == null || value.trim().isEmpty)) {
-                            return 'Please enter your department.';
-                          }
-                          return null;
-                        },
+          : SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+              child: Column(
+                children: [
+                  // Profile picture with edit button
+                  Stack(
+                    children: [
+                      const CircleAvatar(
+                        radius: 50,
+                        backgroundImage: NetworkImage('https://via.placeholder.com/150'),
                       ),
-                    const SizedBox(height: 20),
-                    // Change password button
-                    ElevatedButton(
-                      onPressed: _changePassword,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
+                      Positioned(
+                        bottom: 0,
+                        right: 0,
+                        child: Container(
+                          height: 30,
+                          width: 30,
+                          decoration: BoxDecoration(
+                            color: Colors.blueAccent,
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                            onPressed: () {
+                              // Handle profile picture change
+                            },
+                          ),
                         ),
-                        backgroundColor: Colors.redAccent,
                       ),
-                      child: const Text('Change Password'),
-                    ),
-                    const SizedBox(height: 20),
-                    // Save Changes button
-                    ElevatedButton(
-                      onPressed: _updateUserData,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        backgroundColor: Theme.of(context).colorScheme.primaryContainer,
-                      ),
-                      child: const Text('Save Changes'),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  
+                  // Profile Info Fields (non-editable)
+                  buildProfileRow('Username', '$_firstName $_lastName'), // Combines first and last name
+                  const SizedBox(height: 10),
+                  buildProfileRow('Email', _email),
+                  const SizedBox(height: 10),
+                  buildProfileRow('Phone', _phoneNumber),
+                  const SizedBox(height: 10),
+                  buildProfileRow('Role', _role),
+                  const SizedBox(height: 10),
+                  buildProfileRow('Department', _department),
+                  const SizedBox(height: 30),
+
+                  // Change password button
+  ElevatedButton(
+    onPressed: () {
+      // Password reset functionality
+    },
+    style: ElevatedButton.styleFrom(
+      backgroundColor: Colors.redAccent, // Use backgroundColor instead of primary
+      padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+    ),
+    child: const Text('Change Password'),
+  )
+  ,
+                ],
               ),
             ),
+    );
+  }
+
+  // Helper method to build rows for profile fields
+  Widget buildProfileRow(String label, String value) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey,
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+      ],
     );
   }
 }

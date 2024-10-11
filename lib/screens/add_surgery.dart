@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 
 class AddSurgeryScreen extends StatefulWidget {
+  const AddSurgeryScreen({super.key});
+
   @override
   _AddSurgeryScreenState createState() => _AddSurgeryScreenState();
 }
