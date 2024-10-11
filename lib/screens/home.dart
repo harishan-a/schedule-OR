@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'schedule.dart';
 import 'add_surgery.dart';
 import 'profile.dart';
+import 'doctor_details.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -16,6 +17,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _userFirstName = '';
   bool _isLoading = true;
+  int _selectedIndex = 0;
+  String _nextSurgeryDate = '';
 
   // Method to handle Firebase push notifications
   void setupPushNotifications() async {
@@ -30,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     setupPushNotifications(); // Set up push notifications when the screen is initialized
     _fetchUserFirstName(); // Fetch user's first name
+    _fetchNextSurgeryDate();
   }
 
   Future<void> _fetchUserFirstName() async {
@@ -44,16 +48,30 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _fetchNextSurgeryDate() async {
+    final surgeryData = await FirebaseFirestore.instance.collection('surgeries').doc(_userFirstName).get();
+
+    setState((){
+      _nextSurgeryDate = surgeryData[_userFirstName] ?? 'No surgeries scheduled';
+      _isLoading = false;
+    });
+  }
+
   void _navigateToProfile() {
     Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => const ProfileScreen()));
   }
 
-  void _navigateToSchedule() {
-    Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => ScheduleScreen()));
-  }
 
-  void _navigateToAddSurgery() {
-    Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => AddSurgeryScreen()));
+  void _onItemTapped(int index){
+    if (index == 1){
+      Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => ScheduleScreen()));
+    } else if (index == 2){
+      Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => AddSurgeryScreen()));
+    } else if (index == 3){
+      Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => const ProfileScreen()));
+    } else if (index == 4){
+      Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => DoctorDetailsScreen()));
+    }
   }
 
   @override
@@ -89,30 +107,47 @@ class _HomeScreenState extends State<HomeScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 30),
-                  _buildActionButton(
-                    label: 'View Surgery Schedule',
-                    icon: Icons.calendar_today,
-                    onPressed: _navigateToSchedule,
-                    color: Colors.blue,
-                  ),
-                  const SizedBox(height: 15),
-                  _buildActionButton(
-                    label: 'Add New Surgery',
-                    icon: Icons.add_circle_outline,
-                    onPressed: _navigateToAddSurgery,
-                    color: Colors.green,
-                  ),
-                  const SizedBox(height: 15),
-                  _buildActionButton(
-                    label: 'Profile',
-                    icon: Icons.person_outline,
-                    onPressed: _navigateToProfile,
-                    color: Colors.purple,
-                  ),
+                  Text(
+                    'Your next surgery date will be: $_nextSurgeryDate',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.normal,
+                    )
+                  )
                 ],
               ),
             ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+            backgroundColor:  Color.fromARGB(218, 1, 196, 164),
+            ),       
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_month),
+            label: 'View Surgery Schedule',
+            backgroundColor:  Color.fromARGB(218, 1, 196, 164),
+            ), 
+          BottomNavigationBarItem(
+            icon: Icon(Icons.medication),
+            label: 'Add New Surgery',
+            backgroundColor:  Color.fromARGB(248, 230, 203, 150),
+            ), 
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+            backgroundColor:  Color.fromARGB(248, 230, 203, 150),
+            ),
+          BottomNavigationBarItem(icon: Icon(Icons.contacts),
+            label: 'View Doctor List',
+            backgroundColor:  Color.fromARGB(248, 230, 203, 150),
+            ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.amber[800],
+        onTap: _onItemTapped,
+      ),
     );
   }
 
