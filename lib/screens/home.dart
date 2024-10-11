@@ -1,3 +1,4 @@
+import 'package:firebase_orscheduler/screens/doctor_details.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -56,6 +57,11 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => AddSurgeryScreen()));
   }
 
+  void _navigateToViewDoctorDetails() {
+    Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => DoctorDetailsScreen()));
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -110,6 +116,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: _navigateToProfile,
                     color: Colors.purple,
                   ),
+                  const SizedBox(height: 15),
+                  _buildActionButton(
+                    label: 'View Doctor List',
+                    icon: Icons.person_outline,
+                    onPressed: _navigateToViewDoctorDetails,
+                    color: Colors.lightBlueAccent,
+                  ),
+
                 ],
               ),
             ),
