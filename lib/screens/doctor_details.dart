@@ -9,35 +9,36 @@ class DoctorDetailsScreen extends StatefulWidget {
 }
 
 class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
-  final Stream<QuerySnapshot> _usersStream = FirebaseFirestore.instance
+  final Stream<QuerySnapshot> _usersStream = FirebaseFirestore.instance            // Listens to real-time updates from the 'users'
       .collection('users')
       .snapshots();
 
-  final TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();         // For search bar
   String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _searchController.addListener(() {
+    _searchController.addListener(() {                                            // Initializes the search bar
       setState(() {
-        _searchQuery = _searchController.text.toLowerCase();
+        _searchQuery = _searchController.text.toLowerCase();                      // Updates _searchQuery whenever the text changes and converts text to lowercase
       });
     });
   }
 
-  List<DocumentSnapshot> _filterUsers(List<DocumentSnapshot> userDocs) {
+  List<DocumentSnapshot> _filterUsers(List<DocumentSnapshot> userDocs) {          //Takes a list of users and filters them based on the search query.
     if (_searchQuery.isEmpty) {
-      return userDocs;
+      return userDocs;                                                            // Returns the full list of users if empty
     } else {
-      return userDocs.where((user) {
+      return userDocs.where((user) {                                              // Retrieves user info and filters users based on their roles and name
         final firstName = (user['firstName'] ?? '').toString().toLowerCase();
         final lastName = (user['lastName'] ?? '').toString().toLowerCase();
         final role = (user['role'] ?? '').toString().toLowerCase();
         return firstName.contains(_searchQuery) ||
             lastName.contains(_searchQuery) ||
-            role.contains(_searchQuery);
-      }).toList();
+            role.contains(_searchQuery);                                         // Returns true if any of the user's fields contain the search query and
+      }).toList();                                                               // coverts result back to list
+
     }
   }
 
@@ -55,14 +56,16 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
               controller: _searchController,
               decoration: InputDecoration(
                 hintText: 'Search...',
-                border: OutlineInputBorder(),
+                enabledBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.blueAccent),
+                ),
               ),
             ),
           ),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: _usersStream,
-              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+              stream: _usersStream,                                               // Updates whenever the data in the 'users' collection changes
+              builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {    // Holds the current state of the stream
                 if (snapshot.hasError) {
                   return Center(child: Text('Something went wrong'));
                 }
@@ -70,19 +73,19 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                   return const Center(child: CircularProgressIndicator());
                 }
 
-                final userDocs = snapshot.data?.docs;
+                final userDocs = snapshot.data?.docs;                              // Retrieves users
 
                 if (userDocs == null || userDocs.isEmpty) {
                   return const Center(child: Text('No doctors or nurses found.'));
                 }
 
-                final filteredDocs = _filterUsers(userDocs);
+                final filteredDocs = _filterUsers(userDocs);                      // Filter users list based on search query
 
                 if (filteredDocs.isEmpty) {
                   return const Center(child: Text('No results found.'));
                 }
 
-                return ListView.builder(
+                return ListView.builder(                                          // Defines how to build each item
                   itemCount: filteredDocs.length,
                   itemBuilder: (context, index) {
                     final user = filteredDocs[index];
@@ -96,6 +99,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                     return Card(
                       margin: const EdgeInsets.all(10),
                       elevation: 5,
+                      color: Colors.blue[100], // Set the card color here
                       child: ListTile(
                         title: Text('$firstName $lastName'),
                         subtitle: Column(
@@ -121,7 +125,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
 
   @override
   void dispose() {
-    _searchController.dispose();
+    _searchController.dispose();                                                  // Disposes of _searchController to avoid memory leaks
     super.dispose();
   }
 }
