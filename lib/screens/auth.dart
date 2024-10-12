@@ -313,7 +313,12 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                                 borderRadius: BorderRadius.circular(20),
                               ),
                             ),
-                            child: Text(_isLogin ? 'Login' : 'Signup'),
+                            child: Text(
+                              style: TextStyle(
+                                color: Color.fromARGB(255, 0, 0, 0)
+                              ),
+                              _isLogin ? 'Login' : 'Signup',
+                              ),
                           ),
 
                         if (!_isAuthenticating)
@@ -324,6 +329,9 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                               });
                             },
                             child: Text(
+                              style: TextStyle(
+                                color: Color.fromARGB(255, 0, 0, 0)
+                                ),
                               _isLogin
                                   ? 'Create an account'
                                   : 'I already have an account',

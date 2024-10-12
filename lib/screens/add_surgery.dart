@@ -6,19 +6,89 @@ class AddSurgeryScreen extends StatefulWidget {
   const AddSurgeryScreen({super.key});
 
   @override
-  _AddSurgeryScreenState createState() => _AddSurgeryScreenState();
+  AddSurgeryScreenState createState() => AddSurgeryScreenState();
 }
 
-class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
+class AddSurgeryScreenState extends State<AddSurgeryScreen> {
   final _formKey = GlobalKey<FormState>();
-  var _surgeryType = '';
-  var _room = '';
+  String? _surgeryType;
+  String? _operatingRoom;
+  String? _selectedDoctor;
+  String? _selectedNurse;
+  String? _notes;
+
+  final List<String> _surgeryTypes = [
+    'Cardiac Surgery',
+    'Orthopedic Surgery',
+    'Neurosurgery',
+    'General Surgery',
+    'Plastic Surgery'
+  ];
+  final List<String> _room = [
+    'OperatingRoom1',
+    'OperatingRoom2',
+    'OperatingRoom3',
+    'OperatingRoom4',
+    'OperatingRoom5'
+  ];
   var _startTime = DateTime.now();
   var _endTime = DateTime.now().add(Duration(hours: 1));
-  var _surgeon = '';
-  var _nurses = [];
+  //var _surgeon = '';
+  //var _nurses = [];
   var _technologists = [];
   var _status = 'Scheduled';
+
+  List<String> _doctors = [];
+  List<String> _nurses = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDoctors();
+    _fetchNurses();
+  }
+
+  Future<void> _fetchDoctors() async {
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'Doctor')
+          .get();
+
+      List<String> doctorName = [];
+      for (var doc in snapshot.docs) {
+        String fullName = '${doc['firstName']} ${doc['lastName']}';
+        doctorName.add(fullName);
+      }
+
+      setState(() {
+        _doctors = doctorName;
+      });
+    } catch (error) {
+      print("Error fetching doctors: $error");
+    }
+  }
+
+  Future<void> _fetchNurses() async {
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'Nurse')
+          .get();
+
+      List<String> nurseName = [];
+      for (var doc in snapshot.docs) {
+        String fullName = '${doc['firstName']} ${doc['lastName']}';
+        nurseName.add(fullName);
+      }
+
+      setState(() {
+        _nurses = nurseName;
+      });
+    } catch (error) {
+      print("Error fetching nurses: $error");
+    }
+  }
 
   Future<void> _submitForm() async {
     final isValid = _formKey.currentState!.validate();
@@ -26,19 +96,24 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
 
     _formKey.currentState!.save();
 
-    // Save to Firestore
-    await FirebaseFirestore.instance.collection('surgeries').add({
-      'surgeryType': _surgeryType,
-      'room': _room,
-      'startTime': Timestamp.fromDate(_startTime),
-      'endTime': Timestamp.fromDate(_endTime),
-      'surgeon': _surgeon,
-      'nurses': _nurses,
-      'technologists': _technologists,
-      'status': _status,
-    });
+    try {
+      // Save to Firestore
+      await FirebaseFirestore.instance.collection('surgeries').add({
+        'surgeryType': _surgeryType,
+        'room': _room,
+        'startTime': Timestamp.fromDate(_startTime),
+        'endTime': Timestamp.fromDate(_endTime),
+        'surgeon': _selectedDoctor,
+        'nurses': _nurses,
+        'technologists': _technologists,
+        'status': _status,
+        'notes': _notes,
+      });
 
-    Navigator.of(context).pop(); // Go back after adding surgery
+      Navigator.of(context).pop(); // Go back after adding surgery
+    } catch (error) {
+      print("Error adding surgery: $error");
+    }
   }
 
   @override
@@ -54,11 +129,21 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
           key: _formKey,
           child: ListView(
             children: [
-              TextFormField(
+              DropdownButtonFormField<String>(
                 decoration: InputDecoration(labelText: 'Surgery Type'),
-                onSaved: (value) {
-                  _surgeryType = value!;
+                value: _surgeryType,
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _surgeryType = newValue;
+                  });
                 },
+                items:
+                    _surgeryTypes.map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter the surgery type';
@@ -66,11 +151,20 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
                   return null;
                 },
               ),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Room'),
-                onSaved: (value) {
-                  _room = value!;
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(labelText: 'Choose Operating Room'),
+                value: _operatingRoom,
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _operatingRoom = newValue;
+                  });
                 },
+                items: _room.map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Text(value),
+                  );
+                }).toList(),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter the room';
@@ -80,7 +174,8 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
               ),
               ListTile(
                 title: Text('Start Time'),
-                subtitle: Text(DateFormat('MMM dd, yyyy - hh:mm a').format(_startTime)),
+                subtitle: Text(
+                    DateFormat('MMM dd, yyyy - hh:mm a').format(_startTime)),
                 onTap: () async {
                   var pickedDate = await showDatePicker(
                     context: context,
@@ -95,7 +190,8 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
                     );
                     if (pickedTime != null) {
                       setState(() {
-                        _startTime = DateTime(pickedDate.year, pickedDate.month, pickedDate.day, pickedTime.hour, pickedTime.minute);
+                        _startTime = DateTime(pickedDate.year, pickedDate.month,
+                            pickedDate.day, pickedTime.hour, pickedTime.minute);
                       });
                     }
                   }
@@ -103,7 +199,8 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
               ),
               ListTile(
                 title: Text('End Time'),
-                subtitle: Text(DateFormat('MMM dd, yyyy - hh:mm a').format(_endTime)),
+                subtitle:
+                    Text(DateFormat('MMM dd, yyyy - hh:mm a').format(_endTime)),
                 onTap: () async {
                   var pickedDate = await showDatePicker(
                     context: context,
@@ -118,17 +215,33 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
                     );
                     if (pickedTime != null) {
                       setState(() {
-                        _endTime = DateTime(pickedDate.year, pickedDate.month, pickedDate.day, pickedTime.hour, pickedTime.minute);
+                        _endTime = DateTime(pickedDate.year, pickedDate.month,
+                            pickedDate.day, pickedTime.hour, pickedTime.minute);
                       });
                     }
                   }
                 },
               ),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Surgeon'),
-                onSaved: (value) {
-                  _surgeon = value!;
+              DropdownButtonFormField<String>(
+                decoration: InputDecoration(labelText: 'Select Surgeon'),
+                value: _selectedDoctor,
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedDoctor = newValue;
+                  });
                 },
+                items: _doctors.map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Container(
+                      // Add a fixed height for the dropdown items
+                      height: 50,
+                      child: SingleChildScrollView(
+                        child: Text(value),
+                      ),
+                    ),
+                  );
+                }).toList(),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter surgeon name';
@@ -136,11 +249,27 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
                   return null;
                 },
               ),
-              TextFormField(
-                decoration: InputDecoration(labelText: 'Nurses (comma-separated)'),
-                onSaved: (value) {
-                  _nurses = value!.split(',').map((e) => e.trim()).toList();
+              DropdownButtonFormField<String>(
+                decoration:
+                    InputDecoration(labelText: 'Nurses (comma-separated)'),
+                value: _selectedNurse,
+                onChanged: (String? newValue) {
+                  setState(() {
+                    _selectedNurse = newValue;
+                  });
                 },
+                items: _nurses.map<DropdownMenuItem<String>>((String value) {
+                  return DropdownMenuItem<String>(
+                    value: value,
+                    child: Container(
+                      // Add a fixed height for the dropdown items
+                      height: 50,
+                      child: SingleChildScrollView(
+                        child: Text(value),
+                      ),
+                    ),
+                  );
+                }).toList(),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter nurse names';
@@ -149,9 +278,11 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
                 },
               ),
               TextFormField(
-                decoration: InputDecoration(labelText: 'Technologists (comma-separated)'),
+                decoration: InputDecoration(
+                    labelText: 'Technologists (comma-separated)'),
                 onSaved: (value) {
-                  _technologists = value!.split(',').map((e) => e.trim()).toList();
+                  _technologists =
+                      value!.split(',').map((e) => e.trim()).toList();
                 },
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -183,10 +314,25 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  backgroundColor: Theme.of(context).colorScheme.primaryContainer,
+                  backgroundColor:
+                      Theme.of(context).colorScheme.primaryContainer,
                 ),
                 child: const Text('Add Surgery'),
               ),
+              //New TextFormField for notes
+              TextFormField(
+                decoration: InputDecoration(labelText: 'Notes'),
+                onSaved: (value) {
+                  _notes = value;
+                },
+                maxLines: 3,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter notes';
+                  }
+                  return null;
+                },
+              )
             ],
           ),
         ),
@@ -194,3 +340,5 @@ class _AddSurgeryScreenState extends State<AddSurgeryScreen> {
     );
   }
 }
+
+//notes (doctor, nurse)
