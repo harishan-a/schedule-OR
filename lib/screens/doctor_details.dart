@@ -15,8 +15,8 @@ class DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
 
   final TextEditingController _searchController = TextEditingController();      // For search bar
   String _searchQuery = '';
-  String? selectedDepartment;
-  String? selectedRole;
+  String? selectedDepartment;                                                   //Currently selected department for filtering.
+  String? selectedRole;                                                         //Currently selected role for filtering.
 
   final Map<String, List<String>> departments = {
     'Cardiology': ['Doctor', 'Nurse', 'Technologist', 'Admin'],
@@ -48,7 +48,7 @@ class DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
           role.contains(_searchQuery);                                            // Checks if any of the user's fields contain the search query
 
       // Apply department and role filtering
-      bool matchesDepartment = selectedDepartment == null ||
+      bool matchesDepartment = selectedDepartment == null ||                      //Checks if the user matches the selected department and role
           department == selectedDepartment!.toLowerCase();
       bool matchesRole = selectedRole == null ||
           role == selectedRole!.toLowerCase(); // Ensure exact match
@@ -66,9 +66,16 @@ class DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
 
   void _onRoleSelected(String role) {
     setState(() {
-      selectedRole = role.toLowerCase(); // Match singular form
+      selectedRole = role.toLowerCase();
     });
   }
+
+  // String _getTitle() {
+  //   if (selectedDepartment != null && selectedRole != null) {
+  //     return '${selectedRole!.capitalize()} in ${selectedDepartment!.capitalize()}';
+  //   }
+  //   return 'Details of Doctors and Nurses';
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -87,7 +94,7 @@ class DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
               children: [
                 Text('Select Department', style: TextStyle(fontSize: 16,
                     fontWeight: FontWeight.bold)),
-                ...departments.keys.map((department) {
+                ...departments.keys.map((department) {                            //Maps over the departments to create a list that is shown on the side bar
                   return ListTile(
                     title: Text(department),
                     onTap: () => _onDepartmentSelected(department),
@@ -97,7 +104,7 @@ class DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                 Divider(),
                 Text('Select Role', style: TextStyle(fontSize: 16,
                     fontWeight: FontWeight.bold)),
-                ...['Doctor', 'Nurse', 'Technologist', 'Admin'].map((role) {
+                ...['Doctor', 'Nurse', 'Technologist', 'Admin'].map((role) {      //Maps over the roles to create a list that is shown on the side bar, under the departments
                   return ListTile(
                     title: Text(role),
                     onTap: () => _onRoleSelected(role),
@@ -122,6 +129,14 @@ class DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                     ),
                   ),
                 ),
+                // Padding(
+                //   padding: const EdgeInsets.all(8.0),
+                //   child: Text(
+                //     _getTitle(),
+                //     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                //   ),
+                // ),
+
                 Expanded(
                   child: StreamBuilder<QuerySnapshot>(
                     stream: _usersStream,                                         // Updates whenever the data in the 'users' collection changes
@@ -185,6 +200,7 @@ class DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
       ),
     );
   }
+
 
   @override
   void dispose() {                                                                 // Disposes of _searchController to avoid memory leaks
