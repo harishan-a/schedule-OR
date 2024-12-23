@@ -462,6 +462,23 @@ class ListViewContent extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              // Cancel Surgery Button
+              if (surgery.status.toLowerCase() != 'cancelled') // Show only if not already cancelled
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _cancelSurgery(context, surgery.id), // Call the cancellation method
+                    icon: const Icon(Icons.cancel, color: Colors.white),
+                    label: const Text(
+                      'Cancel Surgery',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red, // Set button color to red
+                    ),
+                  ),
+                ),
             ],
           ),
           onTap: () => _showSurgeryDetails(context, surgery),
@@ -501,4 +518,29 @@ class ListViewContent extends StatelessWidget {
       ),
     );
   }
+
+  void _cancelSurgery(BuildContext context, String surgeryId) async {
+    try {
+      await FirebaseFirestore.instance
+          .collection('surgeries')
+          .doc(surgeryId)
+          .update({'status': 'Cancelled'});
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Surgery has been cancelled successfully.'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      // Handle error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to cancel surgery: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
 }
