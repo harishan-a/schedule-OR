@@ -24,6 +24,7 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'ORScheduler',
       theme: ThemeData.from(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color.fromARGB(255, 238, 83, 12), primary: const Color.fromARGB(255, 253, 227, 206)),

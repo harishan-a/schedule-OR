@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import 'schedule.dart';
 import 'add_surgery.dart';
 import 'profile.dart';
@@ -48,14 +49,36 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _fetchNextSurgeryDate() async {
-    final surgeryData = await FirebaseFirestore.instance.collection('surgeries').doc(_userFirstName).get();
-
-    setState((){
-      _nextSurgeryDate = surgeryData[_userFirstName] ?? 'No surgeries scheduled';
-      _isLoading = false;
-    });
+Future<void> _fetchNextSurgeryDate() async {
+  final user = FirebaseAuth.instance.currentUser;
+  
+  if (user == null || user.uid.isEmpty) {
+    print("Error: User is not authenticated or UID is missing");
+    return;  // Exit early if the user is not logged in or UID is empty
   }
+
+  try {
+    final surgeryData = await FirebaseFirestore.instance
+        .collection('surgeries')
+        .doc(user.uid) // Use the user ID as the document path
+        .get();
+
+    if (surgeryData.exists) {
+      setState(() {
+        _nextSurgeryDate = surgeryData['startTime'] != null
+            ? DateFormat('MMMM dd, yyyy').format((surgeryData['startTime'] as Timestamp).toDate())
+            : 'No surgeries scheduled';
+      });
+    } else {
+      setState(() {
+        _nextSurgeryDate = 'No surgeries scheduled';
+      });
+    }
+  } catch (e) {
+    print("Error fetching next surgery date: $e");
+  }
+}
+
 
   void _navigateToProfile() {
     Navigator.of(context).push(MaterialPageRoute(builder: (ctx) => const ProfileScreen()));
