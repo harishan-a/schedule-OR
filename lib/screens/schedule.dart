@@ -69,6 +69,27 @@ class SurgeryCalendar extends StatelessWidget {
 
   const SurgeryCalendar({super.key, required this.onSurgerySelected});
 
+  //handle surgery deletion
+  void _deleteSurgery(BuildContext context, String surgeryId) async {
+    try {
+      //remove surgery from database backend
+      await FirebaseFirestore.instance
+          .collection('surgeries')
+          .doc(surgeryId)
+          .delete();
+
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Surgery Has Successfully been deleted'),
+        backgroundColor: Colors.green,
+      ));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Failed to delete the surgery'),
+        backgroundColor: Colors.red,
+      ));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot>(
@@ -100,7 +121,8 @@ class SurgeryCalendar extends StatelessWidget {
             final surgeryType = surgeryData['surgeryType'] ?? 'Unknown Surgery';
             final room = surgeryData['room'] ?? 'Unknown Room';
             final startTime = surgeryData['startTime'] != null
-                ? DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryData['startTime'].toDate())
+                ? DateFormat('MMM dd, yyyy - hh:mm a')
+                    .format(surgeryData['startTime'].toDate())
                 : 'Unknown Time';
 
             return Card(
@@ -108,9 +130,14 @@ class SurgeryCalendar extends StatelessWidget {
               elevation: 4,
               child: ListTile(
                 contentPadding: EdgeInsets.all(16),
-                title: Text('$surgeryType - Room $room', style: TextStyle(fontWeight: FontWeight.bold)),
+                title: Text('$surgeryType - Room $room',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: Text('Time: $startTime'),
                 onTap: () => onSurgerySelected(surgeries[index].id),
+                trailing: IconButton(
+                  icon: Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _deleteSurgery(context, surgeries[index].id),
+                ),
               ),
             );
           },
@@ -128,7 +155,10 @@ class SurgeryDetailsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<DocumentSnapshot>(
-      future: FirebaseFirestore.instance.collection('surgeries').doc(surgeryId).get(),
+      future: FirebaseFirestore.instance
+          .collection('surgeries')
+          .doc(surgeryId)
+          .get(),
       builder: (ctx, snapshot) {
         if (!snapshot.hasData) {
           return Center(child: CircularProgressIndicator());
@@ -142,21 +172,35 @@ class SurgeryDetailsPanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Surgery: ${surgeryData['surgeryType']}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text('Surgery: ${surgeryData['surgeryType']}',
+                    style:
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                 SizedBox(height: 10),
-                Text('Room: ${surgeryData['room']}', style: TextStyle(fontSize: 16)),
+                Text('Room: ${surgeryData['room']}',
+                    style: TextStyle(fontSize: 16)),
                 SizedBox(height: 10),
-                Text('Start Time: ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryData['startTime'].toDate())}', style: TextStyle(fontSize: 16)),
+                Text(
+                    'Start Time: ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryData['startTime'].toDate())}',
+                    style: TextStyle(fontSize: 16)),
                 SizedBox(height: 10),
-                Text('End Time: ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryData['endTime'].toDate())}', style: TextStyle(fontSize: 16)),
+                Text(
+                    'End Time: ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryData['endTime'].toDate())}',
+                    style: TextStyle(fontSize: 16)),
                 SizedBox(height: 10),
-                Text('Status: ${surgeryData['status']}', style: TextStyle(fontSize: 16)),
+                Text('Status: ${surgeryData['status']}',
+                    style: TextStyle(fontSize: 16)),
                 SizedBox(height: 20),
-                Text('Assigned Staff:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('Assigned Staff:',
+                    style:
+                        TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 SizedBox(height: 5),
-                Text('Surgeon: ${surgeryData['surgeon']}', style: TextStyle(fontSize: 16)),
-                Text('Nurses: ${surgeryData['nurses'].join(', ')}', style: TextStyle(fontSize: 16)),
-                Text('Technologists: ${surgeryData['technologists'].join(', ')}', style: TextStyle(fontSize: 16)),
+                Text('Surgeon: ${surgeryData['surgeon']}',
+                    style: TextStyle(fontSize: 16)),
+                Text('Nurses: ${surgeryData['nurses'].join(', ')}',
+                    style: TextStyle(fontSize: 16)),
+                Text(
+                    'Technologists: ${surgeryData['technologists'].join(', ')}',
+                    style: TextStyle(fontSize: 16)),
               ],
             ),
           ),
