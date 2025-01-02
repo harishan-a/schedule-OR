@@ -53,7 +53,10 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
             flex: 1,
             child: selectedSurgeryId == null
                 ? Center(child: Text('Select a surgery to view details'))
-                : SurgeryDetailsPanel(surgeryId: selectedSurgeryId!),
+                : Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: SurgeryDetailsPanel(surgeryId: selectedSurgeryId!),
+                  ),
           ),
         ],
       ),
@@ -71,22 +74,18 @@ class SurgeryCalendar extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance.collection('surgeries').snapshots(),
       builder: (ctx, snapshot) {
-        // Show a loading indicator while waiting for data
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // Handle errors and null data
         if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
           return const Center(
             child: Text('Something went wrong or no surgeries available.'),
           );
         }
 
-        // Safely access surgeries data
         final surgeries = snapshot.data!.docs;
 
-        // Handle the case where there are no surgeries
         if (surgeries.isEmpty) {
           return const Center(
             child: Text('No surgeries scheduled at the moment.'),
@@ -98,17 +97,21 @@ class SurgeryCalendar extends StatelessWidget {
           itemBuilder: (ctx, index) {
             var surgeryData = surgeries[index].data() as Map<String, dynamic>;
 
-            // Safely access data in surgeryData and provide fallback values
             final surgeryType = surgeryData['surgeryType'] ?? 'Unknown Surgery';
             final room = surgeryData['room'] ?? 'Unknown Room';
             final startTime = surgeryData['startTime'] != null
                 ? DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryData['startTime'].toDate())
                 : 'Unknown Time';
 
-            return ListTile(
-              title: Text('$surgeryType - Room $room'),
-              subtitle: Text('Time: $startTime'),
-              onTap: () => onSurgerySelected(surgeries[index].id),
+            return Card(
+              margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              elevation: 4,
+              child: ListTile(
+                contentPadding: EdgeInsets.all(16),
+                title: Text('$surgeryType - Room $room', style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text('Time: $startTime'),
+                onTap: () => onSurgerySelected(surgeries[index].id),
+              ),
             );
           },
         );
@@ -116,7 +119,6 @@ class SurgeryCalendar extends StatelessWidget {
     );
   }
 }
-
 
 class SurgeryDetailsPanel extends StatelessWidget {
   final String surgeryId;
@@ -134,20 +136,30 @@ class SurgeryDetailsPanel extends StatelessWidget {
 
         var surgeryData = snapshot.data!.data() as Map<String, dynamic>;
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Surgery: ${surgeryData['surgeryType']}'),
-            Text('Room: ${surgeryData['room']}'),
-            Text('Start Time: ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryData['startTime'].toDate())}'),
-            Text('End Time: ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryData['endTime'].toDate())}'),
-            Text('Status: ${surgeryData['status']}'),
-            SizedBox(height: 10),
-            Text('Assigned Staff:'),
-            Text('Surgeon: ${surgeryData['surgeon']}'),
-            Text('Nurses: ${surgeryData['nurses'].join(', ')}'),
-            Text('Technologists: ${surgeryData['technologists'].join(', ')}'),
-          ],
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Surgery: ${surgeryData['surgeryType']}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                SizedBox(height: 10),
+                Text('Room: ${surgeryData['room']}', style: TextStyle(fontSize: 16)),
+                SizedBox(height: 10),
+                Text('Start Time: ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryData['startTime'].toDate())}', style: TextStyle(fontSize: 16)),
+                SizedBox(height: 10),
+                Text('End Time: ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryData['endTime'].toDate())}', style: TextStyle(fontSize: 16)),
+                SizedBox(height: 10),
+                Text('Status: ${surgeryData['status']}', style: TextStyle(fontSize: 16)),
+                SizedBox(height: 20),
+                Text('Assigned Staff:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                SizedBox(height: 5),
+                Text('Surgeon: ${surgeryData['surgeon']}', style: TextStyle(fontSize: 16)),
+                Text('Nurses: ${surgeryData['nurses'].join(', ')}', style: TextStyle(fontSize: 16)),
+                Text('Technologists: ${surgeryData['technologists'].join(', ')}', style: TextStyle(fontSize: 16)),
+              ],
+            ),
+          ),
         );
       },
     );
@@ -160,7 +172,7 @@ class RoleFilter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(8.0),
+      padding: const EdgeInsets.all(16.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -176,6 +188,9 @@ class RoleFilter extends StatelessWidget {
             onChanged: (value) {
               // Implement filter logic here
             },
+            style: TextStyle(fontSize: 16, color: Colors.black),
+            dropdownColor: Colors.white,
+            icon: Icon(Icons.filter_list),
           ),
         ],
       ),

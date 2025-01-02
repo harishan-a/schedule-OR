@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:dropdown_search/dropdown_search.dart';
 
 class AddSurgeryScreen extends StatefulWidget {
   const AddSurgeryScreen({super.key});
@@ -14,8 +15,9 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
   String? _surgeryType;
   String? _operatingRoom;
   String? _selectedDoctor;
-  String? _selectedNurse;
+  List<String> _selectedNurses = [];
   String? _notes;
+  String? _selectedTechnologist;
 
   final List<String> _surgeryTypes = [
     'Cardiac Surgery',
@@ -35,7 +37,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
   var _endTime = DateTime.now().add(Duration(hours: 1));
   //var _surgeon = '';
   //var _nurses = [];
-  var _technologists = [];
+  List<String> _technologists = [];
   var _status = 'Scheduled';
 
   List<String> _doctors = [];
@@ -46,6 +48,27 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
     super.initState();
     _fetchDoctors();
     _fetchNurses();
+    _fetchTechnologists();
+  }
+
+  Future<void> _fetchTechnologists() async {
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('role', isEqualTo: 'Technologist')
+          .get();
+      List<String> technologistsName = [];
+      for (var doc in snapshot.docs) {
+        String fullName = '${doc['firstName']} ${doc['lastName']}';
+        technologistsName.add(fullName);
+      }
+
+      setState(() {
+        _technologists = technologistsName;
+      });
+    } catch (error) {
+      print("Error fetching technologists: $error");
+    }
   }
 
   Future<void> _fetchDoctors() async {
@@ -90,27 +113,124 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
     }
   }
 
+  Future<bool> _checkForConflicts() async {
+    try {
+      //check for room conflict
+      var roomConflict = await FirebaseFirestore.instance
+          .collection('surgeries')
+          .where('room', isEqualTo: _operatingRoom)
+          .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(_endTime))
+          .where('endTime',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(_startTime))
+          .get();
+
+      if (roomConflict.docs.isNotEmpty) {
+        return true; //room is already booked
+      }
+
+      //check for doctor conflict
+      var doctorConflict = await FirebaseFirestore.instance
+          .collection('surgeries')
+          .where('surgeon', isEqualTo: _selectedDoctor)
+          .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(_endTime))
+          .where('endTime',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(_startTime))
+          .get();
+
+      if (doctorConflict.docs.isNotEmpty) {
+        return true; //doctor is already booked
+      }
+
+      //check for nurse conflicts
+      for (var nurse in _selectedNurses) {
+        var nurseConflict = await FirebaseFirestore.instance
+            .collection('surgeries')
+            .where('nourse', arrayContains: nurse)
+            .where('startTime',
+                isLessThanOrEqualTo: Timestamp.fromDate(_endTime))
+            .where('endTime',
+                isGreaterThanOrEqualTo: Timestamp.fromDate(_startTime))
+            .get();
+
+        if (nurseConflict.docs.isNotEmpty) {
+          return true; //nurse is already booked
+        }
+      }
+
+      return false; //no conflicts
+    } catch (error) {
+      print("Error checking conflicts: $error");
+      return true; // Return true in case of an error to prevent the surgery from being added
+    }
+  }
+
   Future<void> _submitForm() async {
     final isValid = _formKey.currentState!.validate();
     if (!isValid) return;
 
     _formKey.currentState!.save();
 
+    //check for scheduling conflicts
+
+    /**bool hasConflict = await _checkForConflicts();
+    if (hasConflict) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('Conflict Detected'),
+          content: Text(
+              'There is a conflict with the provided information. Please enter another acceptable resource.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+              },
+              child: Text(
+                'OK',
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
+          ],
+        ),
+      );
+      return;
+    }**/
+
     try {
       // Save to Firestore
       await FirebaseFirestore.instance.collection('surgeries').add({
         'surgeryType': _surgeryType,
-        'room': _room,
+        'room': _operatingRoom,
         'startTime': Timestamp.fromDate(_startTime),
         'endTime': Timestamp.fromDate(_endTime),
         'surgeon': _selectedDoctor,
-        'nurses': _nurses,
+        'nurses': _selectedNurses,
         'technologists': _technologists,
         'status': _status,
         'notes': _notes,
       });
 
-      Navigator.of(context).pop(); // Go back after adding surgery
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: Text('Surgery Added'),
+          content: Text('The surgery has been successfully added!'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'OK',
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      //Navigator.of(context).pop(); // Go back after adding surgery
     } catch (error) {
       print("Error adding surgery: $error");
     }
@@ -222,73 +342,128 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
                   }
                 },
               ),
-              DropdownButtonFormField<String>(
-                decoration: InputDecoration(labelText: 'Select Surgeon'),
-                value: _selectedDoctor,
+              DropdownSearch<String>(
+                items: _doctors,
+                dropdownDecoratorProps: DropDownDecoratorProps(
+                  dropdownSearchDecoration: InputDecoration(
+                    labelText: 'Select Surgeon',
+                    hintText: 'Search and select a surgeon',
+                  ),
+                ),
+                popupProps: PopupProps.menu(
+                  showSearchBox: true,
+                ),
                 onChanged: (String? newValue) {
                   setState(() {
                     _selectedDoctor = newValue;
                   });
                 },
-                items: _doctors.map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Container(
-                      // Add a fixed height for the dropdown items
-                      height: 50,
-                      child: SingleChildScrollView(
-                        child: Text(value),
-                      ),
-                    ),
-                  );
-                }).toList(),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter surgeon name';
                   }
                   return null;
                 },
+                selectedItem: _selectedDoctor,
+                filterFn: (item, filter) {
+                  if (filter == null || filter.isEmpty) {
+                    return true;
+                  }
+                  return item.toLowerCase().contains(filter.toLowerCase()) ||
+                      item
+                          .split(' ')
+                          .first
+                          .toLowerCase()
+                          .contains(filter.toLowerCase()) ||
+                      item
+                          .split(' ')
+                          .last
+                          .toLowerCase()
+                          .contains(filter.toLowerCase());
+                },
               ),
-              DropdownButtonFormField<String>(
-                decoration:
-                    InputDecoration(labelText: 'Nurses (comma-separated)'),
-                value: _selectedNurse,
-                onChanged: (String? newValue) {
+              DropdownSearch<String>.multiSelection(
+                  items: _nurses,
+                  dropdownDecoratorProps: DropDownDecoratorProps(
+                    dropdownSearchDecoration: InputDecoration(
+                      labelText: 'Select Nurse',
+                      hintText: 'Search and select a nurse',
+                    ),
+                  ),
+                  popupProps: PopupPropsMultiSelection.menu(
+                    showSearchBox: true,
+                  ),
+                  onChanged: (List<String> selected) {
+                    setState(() {
+                      _selectedNurses = selected;
+                    });
+                  },
+                  selectedItems: _selectedNurses,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter nurse names';
+                    }
+                    return null;
+                  },
+                  //selectedItem: _selectedNurse,
+                  filterFn: (item, filter) {
+                    if (filter == null || filter.isEmpty) {
+                      return true;
+                    }
+                    return item.toLowerCase().contains(filter.toLowerCase()) ||
+                        item
+                            .split(' ')
+                            .first
+                            .toLowerCase()
+                            .contains(filter.toLowerCase()) ||
+                        item
+                            .split(' ')
+                            .last
+                            .toLowerCase()
+                            .contains(filter.toLowerCase());
+                  }),
+              DropdownSearch<String>.multiSelection(
+                items:
+                    _technologists, // Use the same nurse list for technologists
+                dropdownDecoratorProps: DropDownDecoratorProps(
+                  dropdownSearchDecoration: InputDecoration(
+                    labelText: 'Select Technologists',
+                    hintText: 'Search and select technologists',
+                  ),
+                ),
+                popupProps: PopupPropsMultiSelection.menu(
+                  showSearchBox: true,
+                ),
+                onChanged: (List<String> selected) {
                   setState(() {
-                    _selectedNurse = newValue;
+                    _selectedTechnologist =
+                        selected.isNotEmpty ? selected[0] : null;
                   });
                 },
-                items: _nurses.map<DropdownMenuItem<String>>((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Container(
-                      // Add a fixed height for the dropdown items
-                      height: 50,
-                      child: SingleChildScrollView(
-                        child: Text(value),
-                      ),
-                    ),
-                  );
-                }).toList(),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter nurse names';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                decoration: InputDecoration(
-                    labelText: 'Technologists (comma-separated)'),
-                onSaved: (value) {
-                  _technologists =
-                      value!.split(',').map((e) => e.trim()).toList();
-                },
+                selectedItems: _selectedTechnologist != null
+                    ? [_selectedTechnologist!]
+                    : [],
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter technologist names';
                   }
                   return null;
+                },
+                filterFn: (item, filter) {
+                  if (filter == null || filter.isEmpty) {
+                    return true;
+                  }
+                  return item.toLowerCase().contains(filter.toLowerCase()) ||
+                      item
+                          .split(' ')
+                          .first
+                          .toLowerCase()
+                          .contains(filter.toLowerCase()) ||
+                      item
+                          .split(' ')
+                          .last
+                          .toLowerCase()
+                          .contains(filter.toLowerCase());
                 },
               ),
               DropdownButtonFormField<String>(
@@ -306,20 +481,6 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
                   });
                 },
               ),
-              SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _submitForm,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  backgroundColor:
-                      Theme.of(context).colorScheme.primaryContainer,
-                ),
-                child: const Text('Add Surgery'),
-              ),
-              //New TextFormField for notes
               TextFormField(
                 decoration: InputDecoration(labelText: 'Notes'),
                 onSaved: (value) {
@@ -332,7 +493,29 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
                   }
                   return null;
                 },
-              )
+              ),
+
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: _submitForm,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  backgroundColor: Theme.of(context)
+                      .colorScheme
+                      .primaryContainer, // Button background color
+                ),
+                child: const Text(
+                  'Add Surgery',
+                  style: TextStyle(
+                    color: Colors.black, // Set the text color to black
+                  ),
+                ),
+              ),
+
+              //New TextFormField for notes
             ],
           ),
         ),
