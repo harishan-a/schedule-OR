@@ -2,9 +2,9 @@ import 'package:firebase_orscheduler/screens/home.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'doctor_details.dart'; // Replace with the correct import path
-import 'schedule.dart'; // Replace with the correct import path
-import 'add_surgery.dart'; // Replace with the correct import path
+import 'doctor_details.dart';  
+import 'schedule.dart';  
+import 'add_surgery.dart';  
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -26,7 +26,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadUserData(); // Loads user data from Firebase Firestore
+    _loadUserData();  
   }
 
   Future<void> _loadUserData() async {
@@ -121,7 +121,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 20),
 
             // Profile Info Fields (non-editable)
-            buildProfileRow('Username', '$_firstName $_lastName'), // Combines first and last name
+            buildProfileRow('Username', '$_firstName $_lastName'), 
             const SizedBox(height: 10),
             buildProfileRow('Email', _email),
             const SizedBox(height: 10),
