@@ -393,7 +393,7 @@ class ListViewContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-
+    
     // Get in progress surgeries
     final inProgressSurgeries = surgeries
         .where((s) => s.status.toLowerCase() == 'in progress')
