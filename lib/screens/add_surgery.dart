@@ -244,6 +244,37 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
       appBar: AppBar(
         title: Text('Add Surgery'),
         backgroundColor: Theme.of(context).colorScheme.primary,
+        actions: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ResourceCheck(),
+                      ),
+                    );
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.lightBlueAccent,
+                  ),
+                  child: const Text(
+                    'Check Resource Usage',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
