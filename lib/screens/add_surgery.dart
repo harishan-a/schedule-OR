@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:dropdown_search/dropdown_search.dart';
-import 'resource_check.dart';
-
 
 class AddSurgeryScreen extends StatefulWidget {
   const AddSurgeryScreen({super.key});
@@ -123,7 +121,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
           .where('room', isEqualTo: _operatingRoom)
           .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(_endTime))
           .where('endTime',
-          isGreaterThanOrEqualTo: Timestamp.fromDate(_startTime))
+              isGreaterThanOrEqualTo: Timestamp.fromDate(_startTime))
           .get();
 
       if (roomConflict.docs.isNotEmpty) {
@@ -136,7 +134,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
           .where('surgeon', isEqualTo: _selectedDoctor)
           .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(_endTime))
           .where('endTime',
-          isGreaterThanOrEqualTo: Timestamp.fromDate(_startTime))
+              isGreaterThanOrEqualTo: Timestamp.fromDate(_startTime))
           .get();
 
       if (doctorConflict.docs.isNotEmpty) {
@@ -149,9 +147,9 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
             .collection('surgeries')
             .where('nourse', arrayContains: nurse)
             .where('startTime',
-            isLessThanOrEqualTo: Timestamp.fromDate(_endTime))
+                isLessThanOrEqualTo: Timestamp.fromDate(_endTime))
             .where('endTime',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(_startTime))
+                isGreaterThanOrEqualTo: Timestamp.fromDate(_startTime))
             .get();
 
         if (nurseConflict.docs.isNotEmpty) {
@@ -172,31 +170,31 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
 
     _formKey.currentState!.save();
 
-    //check for scheduling conflicts
+    //check for scheduling conflictss
 
-    /**bool hasConflict = await _checkForConflicts();
-        if (hasConflict) {
-        showDialog(
+    bool hasConflict = await _checkForConflicts();
+    if (hasConflict) {
+      showDialog(
         context: context,
         builder: (ctx) => AlertDialog(
-        title: Text('Conflict Detected'),
-        content: Text(
-        'There is a conflict with the provided information. Please enter another acceptable resource.'),
-        actions: [
-        TextButton(
-        onPressed: () {
-        Navigator.of(ctx).pop();
-        },
-        child: Text(
-        'OK',
-        style: TextStyle(color: Colors.black),
+          title: Text('Conflict Detected'),
+          content: Text(
+              'There is a conflict with the provided information. Please enter another acceptable resource.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+              },
+              child: Text(
+                'OK',
+                style: TextStyle(color: Colors.black),
+              ),
+            ),
+          ],
         ),
-        ),
-        ],
-        ),
-        );
-        return;
-        }**/
+      );
+      return;
+    }
 
     try {
       // Save to Firestore
@@ -244,37 +242,6 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
       appBar: AppBar(
         title: Text('Add Surgery'),
         backgroundColor: Theme.of(context).colorScheme.primary,
-        actions: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(right: 8.0),
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ResourceCheck(),
-                      ),
-                    );
-                  },
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.white,
-                    backgroundColor: Colors.lightBlueAccent,
-                  ),
-                  child: const Text(
-                    'Check Resource Usage',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -291,7 +258,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
                   });
                 },
                 items:
-                _surgeryTypes.map<DropdownMenuItem<String>>((String value) {
+                    _surgeryTypes.map<DropdownMenuItem<String>>((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
                     child: Text(value),
@@ -335,11 +302,43 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
                     initialDate: _startTime,
                     firstDate: DateTime.now(),
                     lastDate: DateTime(2100),
+                    builder: (BuildContext context, Widget? child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          textButtonTheme: TextButtonThemeData(
+                            style: TextButton.styleFrom(
+                              foregroundColor:
+                                  Colors.black, // Customize button text color
+                            ),
+                          ),
+                        ),
+                        child: child!,
+                      );
+                    },
                   );
                   if (pickedDate != null) {
                     var pickedTime = await showTimePicker(
                       context: context,
                       initialTime: TimeOfDay.fromDateTime(_startTime),
+                      //colour changing
+                      builder: (BuildContext context, Widget? child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            timePickerTheme: TimePickerThemeData(
+                              dialTextColor: Colors.blue,
+                              hourMinuteTextColor: Colors.blue,
+                              dayPeriodTextColor: Colors.white,
+                            ),
+                            textButtonTheme: TextButtonThemeData(
+                              style: TextButton.styleFrom(
+                                foregroundColor:
+                                    Colors.black, // Customize button text color
+                              ),
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
                     );
                     if (pickedTime != null) {
                       setState(() {
@@ -353,18 +352,44 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
               ListTile(
                 title: Text('End Time'),
                 subtitle:
-                Text(DateFormat('MMM dd, yyyy - hh:mm a').format(_endTime)),
+                    Text(DateFormat('MMM dd, yyyy - hh:mm a').format(_endTime)),
                 onTap: () async {
                   var pickedDate = await showDatePicker(
                     context: context,
                     initialDate: _endTime,
                     firstDate: DateTime.now(),
                     lastDate: DateTime(2100),
+                    builder: (BuildContext context, Widget? child) {
+                      return Theme(
+                        data: Theme.of(context).copyWith(
+                          textButtonTheme: TextButtonThemeData(
+                            style: TextButton.styleFrom(
+                              foregroundColor:
+                                  Colors.black, // Customize button text color
+                            ),
+                          ),
+                        ),
+                        child: child!,
+                      );
+                    },
                   );
                   if (pickedDate != null) {
                     var pickedTime = await showTimePicker(
                       context: context,
                       initialTime: TimeOfDay.fromDateTime(_endTime),
+                      builder: (BuildContext context, Widget? child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            textButtonTheme: TextButtonThemeData(
+                              style: TextButton.styleFrom(
+                                foregroundColor:
+                                    Colors.green, // Customize button text color
+                              ),
+                            ),
+                          ),
+                          child: child!,
+                        );
+                      },
                     );
                     if (pickedTime != null) {
                       setState(() {
@@ -457,7 +482,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
                   }),
               DropdownSearch<String>.multiSelection(
                 items:
-                _technologists, // Use the same nurse list for technologists
+                    _technologists, // Use the same nurse list for technologists
                 dropdownDecoratorProps: DropDownDecoratorProps(
                   dropdownSearchDecoration: InputDecoration(
                     labelText: 'Select Technologists',
@@ -470,7 +495,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
                 onChanged: (List<String> selected) {
                   setState(() {
                     _selectedTechnologist =
-                    selected.isNotEmpty ? selected[0] : null;
+                        selected.isNotEmpty ? selected[0] : null;
                   });
                 },
                 selectedItems: _selectedTechnologist != null
@@ -504,9 +529,9 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
                 decoration: InputDecoration(labelText: 'Status'),
                 items: ['Scheduled', 'In Progress', 'Completed', 'Canceled']
                     .map((status) => DropdownMenuItem<String>(
-                  value: status,
-                  child: Text(status),
-                ))
+                          value: status,
+                          child: Text(status),
+                        ))
                     .toList(),
                 onChanged: (String? value) {
                   setState(() {
