@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:dropdown_search/dropdown_search.dart';
-import 'ResourceCheck.dart';
+import 'resource_check.dart';
 
 
 class AddSurgeryScreen extends StatefulWidget {

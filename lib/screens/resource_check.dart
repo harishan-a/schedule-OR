@@ -103,8 +103,6 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
 
     try {
       final query = FirebaseFirestore.instance.collection('surgeries');
-      final startTimestamp = Timestamp.fromDate(_startTime);
-      final endTimestamp = Timestamp.fromDate(_endTime);
 
       if (_operatingRoom != null) {
         final roomConflicts = await query
@@ -115,8 +113,11 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
           final surgery = doc.data();
           final surgeryStartTime = (surgery['startTime'] as Timestamp).toDate();
           final surgeryEndTime = (surgery['endTime'] as Timestamp).toDate();
+          final surgeryStatus = surgery['status']; // Fetch status field directly
 
-          if (surgeryStartTime.isAfter(DateTime.now())) {
+          // Includes only surgeries with "Scheduled" or "In-Progress" status for operating rooms
+          if (surgeryStartTime.isAfter(DateTime.now()) &&
+              (surgeryStatus == "Scheduled" || surgeryStatus == "In-Progress")) {
             _futureBookings.add({
               'resource': 'Operating Room',
               'name': _operatingRoom,
@@ -126,9 +127,10 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
           }
 
           if (_startTime.isBefore(surgeryEndTime) &&
-              _endTime.isAfter(surgeryStartTime)) {
+              _endTime.isAfter(surgeryStartTime) &&
+              (surgeryStatus == "Scheduled" || surgeryStatus == "In-Progress")) {
             _conflicts.add(
-                'Operating Room $_operatingRoom is already scheduled from ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryStartTime)} to ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryEndTime)}.');
+                '$_operatingRoom is already scheduled from ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryStartTime)} to ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryEndTime)}.');
           }
         }
       }
@@ -142,8 +144,11 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
           final surgery = doc.data();
           final surgeryStartTime = (surgery['startTime'] as Timestamp).toDate();
           final surgeryEndTime = (surgery['endTime'] as Timestamp).toDate();
+          final surgeryStatus = surgery['status']; // Fetch status field directly
 
-          if (surgeryStartTime.isAfter(DateTime.now())) {
+          // Includes only surgeries with "Scheduled" or "In-Progress" status for doctors
+          if (surgeryStartTime.isAfter(DateTime.now()) &&
+              (surgeryStatus == "Scheduled" || surgeryStatus == "In-Progress")) {
             _futureBookings.add({
               'resource': 'Doctor',
               'name': _selectedDoctor,
@@ -153,7 +158,8 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
           }
 
           if (_startTime.isBefore(surgeryEndTime) &&
-              _endTime.isAfter(surgeryStartTime)) {
+              _endTime.isAfter(surgeryStartTime) &&
+              (surgeryStatus == "Scheduled" || surgeryStatus == "In-Progress")) {
             _conflicts.add(
                 'Doctor $_selectedDoctor is already scheduled from ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryStartTime)} to ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryEndTime)}.');
           }
@@ -169,8 +175,11 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
           final surgery = doc.data();
           final surgeryStartTime = (surgery['startTime'] as Timestamp).toDate();
           final surgeryEndTime = (surgery['endTime'] as Timestamp).toDate();
+          final surgeryStatus = surgery['status']; // Fetch status field directly
 
-          if (surgeryStartTime.isAfter(DateTime.now())) {
+          // Includes only surgeries with "Scheduled" or "In-Progress" status for nurses
+          if (surgeryStartTime.isAfter(DateTime.now()) &&
+              (surgeryStatus == "Scheduled" || surgeryStatus == "In-Progress")) {
             _futureBookings.add({
               'resource': 'Nurse',
               'name': nurse,
@@ -180,7 +189,8 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
           }
 
           if (_startTime.isBefore(surgeryEndTime) &&
-              _endTime.isAfter(surgeryStartTime)) {
+              _endTime.isAfter(surgeryStartTime) &&
+              (surgeryStatus == "Scheduled" || surgeryStatus == "In-Progress")) {
             _conflicts.add(
                 'Nurse $nurse is already scheduled from ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryStartTime)} to ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryEndTime)}.');
           }
@@ -196,8 +206,11 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
           final surgery = doc.data();
           final surgeryStartTime = (surgery['startTime'] as Timestamp).toDate();
           final surgeryEndTime = (surgery['endTime'] as Timestamp).toDate();
+          final surgeryStatus = surgery['status']; // Fetch status field directly
 
-          if (surgeryStartTime.isAfter(DateTime.now())) {
+          // Includes only surgeries with "Scheduled" or "In-Progress" status for technologists
+          if (surgeryStartTime.isAfter(DateTime.now()) &&
+              (surgeryStatus == "Scheduled" || surgeryStatus == "In-Progress")) {
             _futureBookings.add({
               'resource': 'Technologist',
               'name': _selectedTechnologist,
@@ -207,7 +220,8 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
           }
 
           if (_startTime.isBefore(surgeryEndTime) &&
-              _endTime.isAfter(surgeryStartTime)) {
+              _endTime.isAfter(surgeryStartTime) &&
+              (surgeryStatus == "Scheduled" || surgeryStatus == "In-Progress")) {
             _conflicts.add(
                 'Technologist $_selectedTechnologist is already scheduled from ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryStartTime)} to ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryEndTime)}.');
           }
