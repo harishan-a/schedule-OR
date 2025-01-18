@@ -4,8 +4,6 @@ import 'package:firebase_orscheduler/screens/schedule.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'add_surgery.dart';
-import 'schedule.dart';
-import 'profile.dart';
 import 'staff_details.dart';
 
 class DoctorDetailsScreen extends StatefulWidget {
