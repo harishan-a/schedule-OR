@@ -1,3 +1,5 @@
+import 'package:firebase_orscheduler/screens/home.dart';
+import 'package:firebase_orscheduler/screens/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +10,9 @@ import 'package:firebase_orscheduler/utils/schedule/surgery_details.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import 'add_surgery.dart';
+import 'doctor_details.dart';
 
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
@@ -26,6 +31,33 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   String _userFirstName = '';
   String _nextSurgeryDate = '';
   bool _isLoading = true;
+  int _selectedIndex = 1; // Set the initial index for ProfileScreen
+
+  // Handles navigation based on the selected index in the BottomNavigationBar
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => const HomeScreen()));
+        break;
+      case 1:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => ScheduleScreen()));
+        break;
+      case 2:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => AddSurgeryScreen()));
+        break;
+      case 3:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => ProfileScreen()));
+        break;
+      case 4:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => const DoctorDetailsScreen()));
+        break;
+    }
+  }
+
 
   void _showViewSelector() {
     showModalBottomSheet(
@@ -60,6 +92,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
       ),
     );
   }
+
 
   Widget _buildViewOption(ViewType type, String title, IconData icon) {
     final isSelected = _currentView == type;
@@ -116,7 +149,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
   Future<void> _fetchNextSurgeryDate() async {
     final user = FirebaseAuth.instance.currentUser;
-    
+
     if (user == null || user.uid.isEmpty) {
       print("Error: User is not authenticated or UID is missing");
       return;  // Exit early if the user is not logged in or UID is empty
@@ -177,6 +210,38 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
           return _buildViewContent(surgeries);
         },
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_month),
+            label: 'Surgery Schedule',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.medication),
+            label: 'Add New Surgery',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.contacts),
+            label: 'Doctor List',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.amber[800],
+        onTap: _onItemTapped,
       ),
     );
   }
@@ -280,7 +345,7 @@ class ListViewContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    
+
     // Get in progress surgeries
     final inProgressSurgeries = surgeries
         .where((s) => s.status.toLowerCase() == 'in progress')
@@ -482,7 +547,9 @@ class ListViewContent extends StatelessWidget {
             ],
           ),
           onTap: () => _showSurgeryDetails(context, surgery),
+
         ),
+
       ),
     );
   }

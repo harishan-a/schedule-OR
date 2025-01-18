@@ -458,7 +458,7 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Future Bookings:',
+                    'Future bookings for the selected resource(s) are shown below. Please choose a time slot different those listed to avoid conflict.',
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
