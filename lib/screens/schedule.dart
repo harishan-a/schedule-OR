@@ -1,3 +1,5 @@
+import 'package:firebase_orscheduler/screens/home.dart';
+import 'package:firebase_orscheduler/screens/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +10,8 @@ import 'package:firebase_orscheduler/utils/schedule/surgery_details.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'add_surgery.dart';
+import 'doctor_details.dart';
 
 /// ScheduleScreen displays the user's surgery schedule in various views.
 class ScheduleScreen extends StatefulWidget {
@@ -27,6 +31,86 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   String _userFirstName = '';
   String _nextSurgeryDate = '';
   bool _isLoading = true;
+  int _selectedIndex = 1; // Set the initial index for ProfileScreen
+
+  // Handles navigation based on the selected index in the BottomNavigationBar
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => const HomeScreen()));
+        break;
+      case 1:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => ScheduleScreen()));
+        break;
+      case 2:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => AddSurgeryScreen()));
+        break;
+      case 3:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => ProfileScreen()));
+        break;
+      case 4:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => const DoctorDetailsScreen()));
+        break;
+    }
+  }
+
+
+  void _showViewSelector() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildViewOption(ViewType.list, 'List View', Icons.list),
+            _buildViewOption(ViewType.week, 'Week View', Icons.calendar_view_week),
+            _buildViewOption(ViewType.month, 'Month View', Icons.calendar_month),
+            _buildViewOption(ViewType.tv, 'TV View', Icons.tv),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildViewOption(ViewType type, String title, IconData icon) {
+    final isSelected = _currentView == type;
+    return ListTile(
+      leading: Icon(icon, color: isSelected ? Theme.of(context).primaryColor : null),
+      title: Text(
+        title,
+        style: TextStyle(color: isSelected ? Theme.of(context).primaryColor : null),
+      ),
+      tileColor: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
+      onTap: () {
+        setState(() {
+          _currentView = type;
+        });
+        Navigator.pop(context);
+      },
+    );
+  }
 
   @override
   void initState() {
@@ -67,6 +151,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   /// Updates the state with the formatted surgery date or an empty string if not found.
   Future<void> _fetchNextSurgeryDate() async {
     final user = FirebaseAuth.instance.currentUser;
+    
     if (user == null || user.uid.isEmpty) {
       print("Error: User is not authenticated or UID is missing");
       return;
@@ -127,6 +212,38 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
 
           return _buildViewContent(surgeries);
         },
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_month),
+            label: 'Surgery Schedule',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.medication),
+            label: 'Add New Surgery',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.contacts),
+            label: 'Doctor List',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.amber[800],
+        onTap: _onItemTapped,
       ),
     );
   }
@@ -479,7 +596,9 @@ class ListViewContent extends StatelessWidget {
             ],
           ),
           onTap: () => _showSurgeryDetails(context, surgery),
+
         ),
+
       ),
     );
   }
