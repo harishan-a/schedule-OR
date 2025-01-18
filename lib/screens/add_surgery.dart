@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:dropdown_search/dropdown_search.dart';
+import 'package:firebase_orscheduler/screens/resource_check.dart';
 
 class AddSurgeryScreen extends StatefulWidget {
   const AddSurgeryScreen({super.key});
@@ -242,6 +243,37 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
       appBar: AppBar(
         title: Text('Add Surgery'),
         backgroundColor: Theme.of(context).colorScheme.primary,
+        actions: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ResourceCheck(),
+                      ),
+                    );
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.lightBlueAccent,
+                  ),
+                  child: const Text(
+                    'Check Resource Usage',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
