@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+/// ScheduleScreen displays the user's surgery schedule in various views.
 class ScheduleScreen extends StatefulWidget {
   const ScheduleScreen({super.key});
 
@@ -27,84 +28,32 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   String _nextSurgeryDate = '';
   bool _isLoading = true;
 
-  void _showViewSelector() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildViewOption(ViewType.list, 'List View', Icons.list),
-            _buildViewOption(ViewType.week, 'Week View', Icons.calendar_view_week),
-            _buildViewOption(ViewType.month, 'Month View', Icons.calendar_month),
-            _buildViewOption(ViewType.tv, 'TV View', Icons.tv),
-            const SizedBox(height: 16),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildViewOption(ViewType type, String title, IconData icon) {
-    final isSelected = _currentView == type;
-    return ListTile(
-      leading: Icon(icon, color: isSelected ? Theme.of(context).primaryColor : null),
-      title: Text(
-        title,
-        style: TextStyle(color: isSelected ? Theme.of(context).primaryColor : null),
-      ),
-      tileColor: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
-      onTap: () {
-        setState(() {
-          _currentView = type;
-        });
-        Navigator.pop(context);
-      },
-    );
-  }
-
   @override
   void initState() {
     super.initState();
-    setupPushNotifications(); // Set up push notifications when the screen is initialized
-    _fetchUserFirstName(); // Fetch user's first name
+    setupPushNotifications();
+    _fetchUserFirstName();
     _fetchNextSurgeryDate();
   }
 
-  // Method to handle Firebase push notifications
+  /// Sets up push notifications for the user.
+  /// Requests permission and subscribes to the 'schedule_updates' topic.
   void setupPushNotifications() async {
     if (kIsWeb) {
-      // Web-specific code
       print("Web platform does not support subscribeToTopic");
     } else {
       final fcm = FirebaseMessaging.instance;
-
       await fcm.requestPermission();
-      fcm.subscribeToTopic('schedule_updates'); // Subscribing to schedule updates
+      fcm.subscribeToTopic('schedule_updates');
     }
   }
 
+  /// Fetches the first name of the current user from Firestore.
+  /// Updates the state with the user's first name and stops the loading indicator.
   Future<void> _fetchUserFirstName() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final userData =
-          await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final userData = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       if (mounted) {
         setState(() {
           _userFirstName = userData['firstName'] ?? '';
@@ -114,18 +63,19 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     }
   }
 
+  /// Fetches the next surgery date for the current user from Firestore.
+  /// Updates the state with the formatted surgery date or an empty string if not found.
   Future<void> _fetchNextSurgeryDate() async {
     final user = FirebaseAuth.instance.currentUser;
-    
     if (user == null || user.uid.isEmpty) {
       print("Error: User is not authenticated or UID is missing");
-      return;  // Exit early if the user is not logged in or UID is empty
+      return;
     }
 
     try {
       final surgeryData = await FirebaseFirestore.instance
           .collection('surgeries')
-          .doc(user.uid) // Use the user ID as the document path
+          .doc(user.uid)
           .get();
 
       if (surgeryData.exists) {
@@ -181,6 +131,61 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     );
   }
 
+  /// Displays a modal bottom sheet to select the view type.
+  void _showViewSelector() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildViewOption(ViewType.list, 'List View', Icons.list),
+            _buildViewOption(ViewType.week, 'Week View', Icons.calendar_view_week),
+            _buildViewOption(ViewType.month, 'Month View', Icons.calendar_month),
+            _buildViewOption(ViewType.tv, 'TV View', Icons.tv),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Builds a list tile for each view option in the view selector.
+  Widget _buildViewOption(ViewType type, String title, IconData icon) {
+    final isSelected = _currentView == type;
+    return ListTile(
+      leading: Icon(icon, color: isSelected ? Theme.of(context).primaryColor : null),
+      title: Text(
+        title,
+        style: TextStyle(color: isSelected ? Theme.of(context).primaryColor : null),
+      ),
+      tileColor: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
+      onTap: () {
+        setState(() {
+          _currentView = type;
+        });
+        Navigator.pop(context);
+      },
+    );
+  }
+
+  /// Builds the content of the schedule screen based on the selected view type.
   Widget _buildViewContent(List<Surgery> surgeries) {
     switch (_currentView) {
       case ViewType.list:
@@ -195,40 +200,9 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
         return ListViewContent(surgeries: surgeries);
     }
   }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'scheduled':
-        return Colors.blue;
-      case 'in progress':
-        return Colors.orange;
-      case 'completed':
-        return Colors.green;
-      case 'cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  void _showSurgeryDetails(BuildContext context, Surgery surgery) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        maxChildSize: 0.9,
-        minChildSize: 0.5,
-        builder: (_, controller) => SurgeryDetails(
-          surgery: surgery,
-          scrollController: controller,
-        ),
-      ),
-    );
-  }
 }
 
+/// Represents a surgery with its details.
 class Surgery {
   final String id;
   final String surgeryType;
@@ -254,6 +228,7 @@ class Surgery {
     required this.notes,
   });
 
+  /// Factory constructor to create a Surgery instance from Firestore data.
   factory Surgery.fromFirestore(String id, Map<String, dynamic> data) {
     return Surgery(
       id: id,
@@ -270,17 +245,37 @@ class Surgery {
   }
 }
 
+/// Enum representing the different view types available in the schedule screen.
 enum ViewType { list, week, month, tv }
 
+/// ListViewContent displays the surgeries in a list format.
 class ListViewContent extends StatelessWidget {
   final List<Surgery> surgeries;
 
   const ListViewContent({super.key, required this.surgeries});
 
+  /// Displays the details of a selected surgery in a modal bottom sheet.
+  void _showSurgeryDetails(BuildContext context, Surgery surgery) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        maxChildSize: 0.9,
+        minChildSize: 0.5,
+        builder: (_, controller) => SurgeryDetails(
+          surgery: surgery,
+          scrollController: controller,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    
+
     // Get in progress surgeries
     final inProgressSurgeries = surgeries
         .where((s) => s.status.toLowerCase() == 'in progress')
@@ -354,6 +349,7 @@ class ListViewContent extends StatelessWidget {
     );
   }
 
+  /// Builds a section header with a title and color.
   Widget _buildSectionHeader(String title, Color color) {
     return SliverToBoxAdapter(
       child: Container(
@@ -376,6 +372,7 @@ class ListViewContent extends StatelessWidget {
     );
   }
 
+  /// Builds a card displaying surgery details.
   Widget _buildSurgeryCard(
     BuildContext context,
     Surgery surgery, {
@@ -464,18 +461,18 @@ class ListViewContent extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               // Cancel Surgery Button
-              if (surgery.status.toLowerCase() != 'cancelled') // Show only if not already cancelled
+              if (surgery.status.toLowerCase() != 'cancelled')
                 Align(
                   alignment: Alignment.centerLeft,
                   child: ElevatedButton.icon(
-                    onPressed: () => _cancelSurgery(context, surgery.id), // Call the cancellation method
+                    onPressed: () => _cancelSurgery(context, surgery.id),
                     icon: const Icon(Icons.cancel, color: Colors.white),
                     label: const Text(
                       'Cancel Surgery',
                       style: TextStyle(color: Colors.white),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red, // Set button color to red
+                      backgroundColor: Colors.red,
                     ),
                   ),
                 ),
@@ -487,6 +484,7 @@ class ListViewContent extends StatelessWidget {
     );
   }
 
+  /// Returns the color associated with a surgery status.
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'scheduled':
@@ -502,24 +500,8 @@ class ListViewContent extends StatelessWidget {
     }
   }
 
-  void _showSurgeryDetails(BuildContext context, Surgery surgery) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        maxChildSize: 0.9,
-        minChildSize: 0.5,
-        builder: (_, controller) => SurgeryDetails(
-          surgery: surgery,
-          scrollController: controller,
-        ),
-      ),
-    );
-  }
-
-  void _cancelSurgery(BuildContext context, String surgeryId) async {
+  /// Cancels a surgery by updating its status in Firestore.
+  Future<void> _cancelSurgery(BuildContext context, String surgeryId) async {
     try {
       await FirebaseFirestore.instance
           .collection('surgeries')
@@ -527,20 +509,13 @@ class ListViewContent extends StatelessWidget {
           .update({'status': 'Cancelled'});
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Surgery has been cancelled successfully.'),
-          backgroundColor: Colors.green,
-        ),
+        const SnackBar(content: Text('Surgery cancelled successfully')),
       );
     } catch (e) {
-      // Handle error
+      print("Error cancelling surgery: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to cancel surgery: $e'),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text('Failed to cancel surgery')),
       );
     }
   }
-
 }

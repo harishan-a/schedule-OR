@@ -4,16 +4,16 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_orscheduler/utils/formatters.dart';
+import 'package:firebase_orscheduler/utils/twilio_service.dart';
 
 final _firebase = FirebaseAuth.instance;
 
+/// AuthScreen handles user authentication, providing both login and signup functionalities.
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
 
   @override
-  State<AuthScreen> createState() {
-    return _AuthScreenState();
-  }
+  State<AuthScreen> createState() => _AuthScreenState();
 }
 
 class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
@@ -45,75 +45,83 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
     'Other'
   ];
 
+  /// Submits the form for either login or signup based on the current mode.
+  /// Validates the form, performs authentication, and navigates to the home screen upon success.
   void _submit() async {
-  final isValid = _form.currentState!.validate();
-  if (!isValid) return;
+    final isValid = _form.currentState!.validate();
+    if (!isValid) return;
 
-  _form.currentState!.save();
+    _form.currentState!.save();
 
-  try {
-    setState(() {
-      _isAuthenticating = true;
-    });
-
-    if (_isLogin) {
-      // Login user
-      final userCredentials = await _firebase.signInWithEmailAndPassword(
-        email: _enteredEmail,
-        password: _enteredPassword,
-      );
-
-      // Navigate to home screen after successful login
-      if (mounted) {
-        Navigator.of(context).pushReplacement(_createRoute());
-      }
-
-    } else {
-      // Sign up user
-      final userCredentials = await _firebase.createUserWithEmailAndPassword(
-        email: _enteredEmail,
-        password: _enteredPassword,
-      );
-
-      // Determine the department (custom or selected)
-      String department = _selectedDepartment == 'Other'
-          ? _customDepartment
-          : _selectedDepartment;
-
-      // Write user information to Firestore after successful authentication
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCredentials.user!.uid)
-          .set({
-        'firstName': _enteredFirstName,
-        'lastName': _enteredLastName,
-        'email': _enteredEmail,
-        'phoneNumber': _enteredPhoneNumber,
-        'role': _selectedRole,
-        'department': department,
+    try {
+      setState(() {
+        _isAuthenticating = true;
       });
 
-      // Navigate to home screen after successful signup
-      if (mounted) {
-        Navigator.of(context).pushReplacement(_createRoute());
+      if (_isLogin) {
+        // Login user
+        final userCredentials = await _firebase.signInWithEmailAndPassword(
+          email: _enteredEmail,
+          password: _enteredPassword,
+        );
+
+        // Navigate to home screen after successful login
+        if (mounted) {
+          Navigator.of(context).pushReplacement(_createRoute());
+        }
+      } else {
+        // Sign up user
+        final userCredentials = await _firebase.createUserWithEmailAndPassword(
+          email: _enteredEmail,
+          password: _enteredPassword,
+        );
+
+        // Determine the department (custom or selected)
+        String department = _selectedDepartment == 'Other'
+            ? _customDepartment
+            : _selectedDepartment;
+
+        // Write user information to Firestore after successful authentication
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredentials.user!.uid)
+            .set({
+          'firstName': _enteredFirstName,
+          'lastName': _enteredLastName,
+          'email': _enteredEmail,
+          'phoneNumber': _enteredPhoneNumber,
+          'role': _selectedRole,
+          'department': department,
+        });
+
+        // After writing user information to Firestore
+        final twilioService = TwilioService();
+        twilioService.sendSMS(
+          toNumber: _enteredPhoneNumber,
+          messageBody: 'Welcome to ORScheduler, $_enteredFirstName!',
+        );
+
+        // Navigate to home screen after successful signup
+        if (mounted) {
+          Navigator.of(context).pushReplacement(_createRoute());
+        }
       }
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error.message ?? 'Authentication failed.'),
+        ),
+      );
+    } finally {
+      setState(() {
+        _isAuthenticating = false;
+      });
     }
-  } on FirebaseAuthException catch (error) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).clearSnackBars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(error.message ?? 'Authentication failed.'),
-      ),
-    );
-  } finally {
-    setState(() {
-      _isAuthenticating = false;
-    });
   }
-}
 
-
+  /// Creates a route with a slide transition to the HomeScreen.
   Route _createRoute() {
     return PageRouteBuilder(
       pageBuilder: (context, animation, secondaryAnimation) => const HomeScreen(),
@@ -148,8 +156,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                 child: Container(
                   margin: const EdgeInsets.only(top: 30, bottom: 20),
                   width: 200,
-                  child: Image.asset(
-                      'assets/images/doctorlogo.png'),
+                  child: Image.asset('assets/images/doctorlogo.png'),
                 ),
               ),
               Card(
@@ -349,6 +356,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
     );
   }
 
+  /// Builds a text field with specified properties for the form.
   Widget _buildTextField({
     required String labelText,
     String? hintText,
@@ -371,6 +379,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
     );
   }
 
+  /// Builds a dropdown field with specified properties for the form.
   Widget _buildDropdownField({
     required String label,
     required String value,

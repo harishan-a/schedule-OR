@@ -8,12 +8,28 @@ import 'package:firebase_orscheduler/screens/add_surgery.dart'; // Import the Ad
 import 'package:firebase_orscheduler/screens/splash.dart';
 import 'firebase_options.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_orscheduler/utils/twilio_service.dart'; // Import the TwilioService class
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
+
+
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize dotenv before accessing environment variables
+  await dotenv.load(fileName: ".env");
+
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  //final twilioService = TwilioService(); // Initialize TwilioService
+  //twilioService.sendSMS(
+  //  toNumber: '+14169516731', // Replace with a test phone number
+   // messageBody: 'Hello! This is a test message from your app.',
+  //);
+
+  
 
   runApp(const App());
 }

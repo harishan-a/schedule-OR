@@ -1,7 +1,7 @@
-
 import 'package:firebase_orscheduler/screens/schedule.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_orscheduler/utils/twilio_service.dart';
 
 class SurgeryProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -19,6 +19,14 @@ class SurgeryProvider extends ChangeNotifier {
         'technologists': surgery.technologists,
         'notes': surgery.notes,
       });
+
+      // Send SMS with surgery details
+      final twilioService = TwilioService();
+      final messageBody = 'Surgery Scheduled: ${surgery.surgeryType} in Room ${surgery.room.join(", ")}. Start: ${surgery.startTime}, End: ${surgery.endTime}. Surgeon: ${surgery.surgeon}.';
+      twilioService.sendSMS(
+        toNumber: '+1234567890', // Replace with the actual phone number
+        messageBody: messageBody,
+      );
     } catch (e) {
       debugPrint('Error adding surgery: $e');
       rethrow;
