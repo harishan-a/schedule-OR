@@ -144,56 +144,56 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
     }
   }
 
-  Future<bool> _checkForConflicts() async {
-    try {
-      //check for room conflict
-      var roomConflict = await FirebaseFirestore.instance
-          .collection('surgeries')
-          .where('room', isEqualTo: _operatingRoom)
-          .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(_endTime))
-          .where('endTime',
-              isGreaterThanOrEqualTo: Timestamp.fromDate(_startTime))
-          .get();
+  // Future<bool> _checkForConflicts() async {
+  //   try {
+  //     //check for room conflict
+  //     var roomConflict = await FirebaseFirestore.instance
+  //         .collection('surgeries')
+  //         .where('room', isEqualTo: _operatingRoom)
+  //         .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(_endTime))
+  //         .where('endTime',
+  //             isGreaterThanOrEqualTo: Timestamp.fromDate(_startTime))
+  //         .get();
 
-      if (roomConflict.docs.isNotEmpty) {
-        return true; //room is already booked
-      }
+  //     if (roomConflict.docs.isNotEmpty) {
+  //       return true; //room is already booked
+  //     }
 
-      //check for doctor conflict
-      var doctorConflict = await FirebaseFirestore.instance
-          .collection('surgeries')
-          .where('surgeon', isEqualTo: _selectedDoctor)
-          .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(_endTime))
-          .where('endTime',
-              isGreaterThanOrEqualTo: Timestamp.fromDate(_startTime))
-          .get();
+  //     //check for doctor conflict
+  //     var doctorConflict = await FirebaseFirestore.instance
+  //         .collection('surgeries')
+  //         .where('surgeon', isEqualTo: _selectedDoctor)
+  //         .where('startTime', isLessThanOrEqualTo: Timestamp.fromDate(_endTime))
+  //         .where('endTime',
+  //             isGreaterThanOrEqualTo: Timestamp.fromDate(_startTime))
+  //         .get();
 
-      if (doctorConflict.docs.isNotEmpty) {
-        return true; //doctor is already booked
-      }
+  //     if (doctorConflict.docs.isNotEmpty) {
+  //       return true; //doctor is already booked
+  //     }
 
-      //check for nurse conflicts
-      for (var nurse in _selectedNurses) {
-        var nurseConflict = await FirebaseFirestore.instance
-            .collection('surgeries')
-            .where('nourse', arrayContains: nurse)
-            .where('startTime',
-                isLessThanOrEqualTo: Timestamp.fromDate(_endTime))
-            .where('endTime',
-                isGreaterThanOrEqualTo: Timestamp.fromDate(_startTime))
-            .get();
+  //     //check for nurse conflicts
+  //     for (var nurse in _selectedNurses) {
+  //       var nurseConflict = await FirebaseFirestore.instance
+  //           .collection('surgeries')
+  //           .where('nourse', arrayContains: nurse)
+  //           .where('startTime',
+  //               isLessThanOrEqualTo: Timestamp.fromDate(_endTime))
+  //           .where('endTime',
+  //               isGreaterThanOrEqualTo: Timestamp.fromDate(_startTime))
+  //           .get();
 
-        if (nurseConflict.docs.isNotEmpty) {
-          return true; //nurse is already booked
-        }
-      }
+  //       if (nurseConflict.docs.isNotEmpty) {
+  //         return true; //nurse is already booked
+  //       }
+  //     }
 
-      return false; //no conflicts
-    } catch (error) {
-      print("Error checking conflicts: $error");
-      return true; // Return true in case of an error to prevent the surgery from being added
-    }
-  }
+  //     return false; //no conflicts
+  //   } catch (error) {
+  //     print("Error checking conflicts: $error");
+  //     return true; // Return true in case of an error to prevent the surgery from being added
+  //   }
+  // }
 
   Future<void> _submitForm() async {
     final isValid = _formKey.currentState!.validate();
@@ -203,29 +203,29 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
 
     //check for scheduling conflictss
 
-    bool hasConflict = await _checkForConflicts();
-    if (hasConflict) {
-      showDialog(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          title: Text('Conflict Detected'),
-          content: Text(
-              'There is a conflict with the provided information. Please enter another acceptable resource.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-              },
-              child: Text(
-                'OK',
-                style: TextStyle(color: Colors.black),
-              ),
-            ),
-          ],
-        ),
-      );
-      return;
-    }
+    //  bool hasConflict = await _checkForConflicts();
+    //   if (hasConflict) {
+    //     showDialog(
+    //       context: context,
+    //       builder: (ctx) => AlertDialog(
+    //         title: Text('Conflict Detected'),
+    //         content: Text(
+    //             'There is a conflict with the provided information. Please enter another acceptable resource.'),
+    //         actions: [
+    //           TextButton(
+    //             onPressed: () {
+    //               Navigator.of(ctx).pop();
+    //             },
+    //             child: Text(
+    //               'OK',
+    //               style: TextStyle(color: Colors.black),
+    //             ),
+    //           ),
+    //         ],
+    //       ),
+    //     );
+    //     return;
+    //   }
 
     try {
       // Save to Firestore
