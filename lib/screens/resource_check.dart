@@ -11,21 +11,12 @@ class ResourceCheck extends StatefulWidget {
 }
 
 class ResourceCheckScreenState extends State<ResourceCheck> {
-  String? _surgeryType;
   String? _operatingRoom;
   String? _selectedDoctor;
   List<String> _selectedNurses = [];
   String? _selectedTechnologist;
   DateTime _startTime = DateTime.now();
   DateTime _endTime = DateTime.now().add(const Duration(hours: 1));
-
-  // final List<String> _surgeryTypes = [
-  //   'Cardiac Surgery',
-  //   'Orthopedic Surgery',
-  //   'Neurosurgery',
-  //   'General Surgery',
-  //   'Plastic Surgery'
-  // ];
 
   final List<String> _room = [
     'OperatingRoom1',
@@ -38,7 +29,8 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
   List<String> _technologists = [];
   List<String> _doctors = [];
   List<String> _nurses = [];
-  List<String> _conflicts = []; // To store conflict messages
+  List<String> _conflicts = [];
+  List<Map<String, dynamic>> _futureBookings = [];
 
   @override
   void initState() {
@@ -106,18 +98,11 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
   }
 
   Future<void> _checkConflicts() async {
-    _conflicts.clear(); // Clear previous results
+    _conflicts.clear();
+    _futureBookings.clear();
 
     try {
       final query = FirebaseFirestore.instance.collection('surgeries');
-      final startTimestamp = Timestamp.fromDate(_startTime);
-      final endTimestamp = Timestamp.fromDate(_endTime);
-
-      if (_startTime.isAfter(_endTime)) {
-        _conflicts.add("Start time must be before end time.");
-        setState(() {});
-        return;
-      }
 
       if (_operatingRoom != null) {
         final roomConflicts = await query
@@ -128,10 +113,24 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
           final surgery = doc.data();
           final surgeryStartTime = (surgery['startTime'] as Timestamp).toDate();
           final surgeryEndTime = (surgery['endTime'] as Timestamp).toDate();
+          final surgeryStatus = surgery['status']; // Fetch status field directly
 
-          if (_startTime.isBefore(surgeryEndTime) && _endTime.isAfter(surgeryStartTime)) {
-            _conflicts.add('$_operatingRoom is already scheduled during the selected time.');
-            break;
+          // Includes only surgeries with "Scheduled" or "In-Progress" status for operating rooms
+          if (surgeryStartTime.isAfter(DateTime.now()) &&
+              (surgeryStatus == "Scheduled" || surgeryStatus == "In-Progress")) {
+            _futureBookings.add({
+              'resource': 'Operating Room',
+              'name': _operatingRoom,
+              'startTime': surgeryStartTime,
+              'endTime': surgeryEndTime,
+            });
+          }
+
+          if (_startTime.isBefore(surgeryEndTime) &&
+              _endTime.isAfter(surgeryStartTime) &&
+              (surgeryStatus == "Scheduled" || surgeryStatus == "In-Progress")) {
+            _conflicts.add(
+                '$_operatingRoom is already scheduled from ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryStartTime)} to ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryEndTime)}.');
           }
         }
       }
@@ -145,10 +144,24 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
           final surgery = doc.data();
           final surgeryStartTime = (surgery['startTime'] as Timestamp).toDate();
           final surgeryEndTime = (surgery['endTime'] as Timestamp).toDate();
+          final surgeryStatus = surgery['status']; // Fetch status field directly
 
-          if (_startTime.isBefore(surgeryEndTime) && _endTime.isAfter(surgeryStartTime)) {
-            _conflicts.add('Doctor $_selectedDoctor is already scheduled during the selected time.');
-            break;
+          // Includes only surgeries with "Scheduled" or "In-Progress" status for doctors
+          if (surgeryStartTime.isAfter(DateTime.now()) &&
+              (surgeryStatus == "Scheduled" || surgeryStatus == "In-Progress")) {
+            _futureBookings.add({
+              'resource': 'Doctor',
+              'name': _selectedDoctor,
+              'startTime': surgeryStartTime,
+              'endTime': surgeryEndTime,
+            });
+          }
+
+          if (_startTime.isBefore(surgeryEndTime) &&
+              _endTime.isAfter(surgeryStartTime) &&
+              (surgeryStatus == "Scheduled" || surgeryStatus == "In-Progress")) {
+            _conflicts.add(
+                'Doctor $_selectedDoctor is already scheduled from ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryStartTime)} to ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryEndTime)}.');
           }
         }
       }
@@ -162,10 +175,24 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
           final surgery = doc.data();
           final surgeryStartTime = (surgery['startTime'] as Timestamp).toDate();
           final surgeryEndTime = (surgery['endTime'] as Timestamp).toDate();
+          final surgeryStatus = surgery['status']; // Fetch status field directly
 
-          if (_startTime.isBefore(surgeryEndTime) && _endTime.isAfter(surgeryStartTime)) {
-            _conflicts.add('Nurse $nurse is already scheduled during the selected time.');
-            break;
+          // Includes only surgeries with "Scheduled" or "In-Progress" status for nurses
+          if (surgeryStartTime.isAfter(DateTime.now()) &&
+              (surgeryStatus == "Scheduled" || surgeryStatus == "In-Progress")) {
+            _futureBookings.add({
+              'resource': 'Nurse',
+              'name': nurse,
+              'startTime': surgeryStartTime,
+              'endTime': surgeryEndTime,
+            });
+          }
+
+          if (_startTime.isBefore(surgeryEndTime) &&
+              _endTime.isAfter(surgeryStartTime) &&
+              (surgeryStatus == "Scheduled" || surgeryStatus == "In-Progress")) {
+            _conflicts.add(
+                'Nurse $nurse is already scheduled from ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryStartTime)} to ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryEndTime)}.');
           }
         }
       }
@@ -179,20 +206,78 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
           final surgery = doc.data();
           final surgeryStartTime = (surgery['startTime'] as Timestamp).toDate();
           final surgeryEndTime = (surgery['endTime'] as Timestamp).toDate();
+          final surgeryStatus = surgery['status']; // Fetch status field directly
 
-          if (_startTime.isBefore(surgeryEndTime) && _endTime.isAfter(surgeryStartTime)) {
-            _conflicts.add('Technologist $_selectedTechnologist is already scheduled during the selected time.');
-            break;
+          // Includes only surgeries with "Scheduled" or "In-Progress" status for technologists
+          if (surgeryStartTime.isAfter(DateTime.now()) &&
+              (surgeryStatus == "Scheduled" || surgeryStatus == "In-Progress")) {
+            _futureBookings.add({
+              'resource': 'Technologist',
+              'name': _selectedTechnologist,
+              'startTime': surgeryStartTime,
+              'endTime': surgeryEndTime,
+            });
+          }
+
+          if (_startTime.isBefore(surgeryEndTime) &&
+              _endTime.isAfter(surgeryStartTime) &&
+              (surgeryStatus == "Scheduled" || surgeryStatus == "In-Progress")) {
+            _conflicts.add(
+                'Technologist $_selectedTechnologist is already scheduled from ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryStartTime)} to ${DateFormat('MMM dd, yyyy - hh:mm a').format(surgeryEndTime)}.');
           }
         }
       }
 
       setState(() {});
     } catch (error) {
-      print("Error checking conflicts: $error");
+      print('Error checking conflicts: $error');
       _conflicts.add('An error occurred while checking for conflicts.');
       setState(() {});
     }
+  }
+
+  Widget _buildFutureBookingsTable(String resourceType) {
+    final bookings = _futureBookings
+        .where((booking) => booking['resource'] == resourceType)
+        .toList();
+
+    if (bookings.isEmpty) return const SizedBox(); // Skip empty sections
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Text(
+            resourceType,
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: Colors.blueAccent,
+            ),
+          ),
+        ),
+        Table(
+          border: TableBorder.all(color: Colors.grey),
+          columnWidths: const {0: FlexColumnWidth(1), 1: FlexColumnWidth(2)},
+          children: bookings.map((booking) {
+            return TableRow(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(booking['name'] ?? ''),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                      '${DateFormat('MMM dd, yyyy - hh:mm a').format(booking['startTime'])} to ${DateFormat('MMM dd, yyyy - hh:mm a').format(booking['endTime'])}'),
+                ),
+              ],
+            );
+          }).toList(),
+        ),
+      ],
+    );
   }
 
   @override
@@ -207,21 +292,6 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
         padding: const EdgeInsets.all(16),
         child: ListView(
           children: [
-            // DropdownButtonFormField<String>(
-            //   decoration: const InputDecoration(labelText: 'Surgery Type'),
-            //   value: _surgeryType,
-            //   onChanged: (String? newValue) {
-            //     setState(() {
-            //       _surgeryType = newValue;
-            //     });
-            //   },
-            //   items: _surgeryTypes.map<DropdownMenuItem<String>>((String value) {
-            //     return DropdownMenuItem<String>(
-            //       value: value,
-            //       child: Text(value),
-            //     );
-            //   }).toList(),
-            // ),
             DropdownButtonFormField<String>(
               decoration: const InputDecoration(labelText: 'Operating Room'),
               value: _operatingRoom,
@@ -271,31 +341,27 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
               },
               selectedItems: _selectedNurses,
             ),
-            DropdownSearch<String>.multiSelection(
+            DropdownSearch<String>(
               items: _technologists,
               dropdownDecoratorProps: const DropDownDecoratorProps(
                 dropdownSearchDecoration: InputDecoration(
-                  labelText: 'Select Technologists',
-                  hintText: 'Search and select technologists',
+                  labelText: 'Select Technologist',
+                  hintText: 'Search and select a technologist',
                 ),
               ),
-              popupProps: const PopupPropsMultiSelection.menu(
-                showSearchBox: true,
-              ),
-              onChanged: (List<String> selected) {
+              popupProps: const PopupProps.menu(showSearchBox: true),
+              onChanged: (String? newValue) {
                 setState(() {
-                  _selectedTechnologist =
-                  selected.isNotEmpty ? selected[0] : null;
+                  _selectedTechnologist = newValue;
                 });
               },
-              selectedItems: _selectedTechnologist != null
-                  ? [_selectedTechnologist!]
-                  : [],
+              selectedItem: _selectedTechnologist,
             ),
             const SizedBox(height: 20),
             ListTile(
               title: const Text('Start Time'),
-              subtitle: Text(DateFormat('MMM dd, yyyy - hh:mm a').format(_startTime)),
+              subtitle: Text(
+                  DateFormat('MMM dd, yyyy - hh:mm a').format(_startTime)),
               onTap: () async {
                 final pickedDate = await showDatePicker(
                   context: context,
@@ -324,7 +390,8 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
             ),
             ListTile(
               title: const Text('End Time'),
-              subtitle: Text(DateFormat('MMM dd, yyyy - hh:mm a').format(_endTime)),
+              subtitle:
+              Text(DateFormat('MMM dd, yyyy - hh:mm a').format(_endTime)),
               onTap: () async {
                 final pickedDate = await showDatePicker(
                   context: context,
@@ -347,7 +414,6 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
                         pickedTime.minute,
                       );
 
-                      // Ensure _endTime is after _startTime
                       if (_endTime.isBefore(_startTime)) {
                         _startTime = _endTime.subtract(const Duration(hours: 1));
                       }
@@ -356,12 +422,12 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
                 }
               },
             ),
-
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _checkConflicts,
               style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 backgroundColor: Colors.lightBlueAccent,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -375,16 +441,37 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
                 ),
               ),
             ),
-
             const SizedBox(height: 20),
-            if (_conflicts.isNotEmpty) ..._conflicts.map((conflict) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Text(
-                conflict,
-                style: const TextStyle(color: Colors.red),
+            if (_conflicts.isNotEmpty)
+              ..._conflicts.map(
+                    (conflict) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Text(
+                    conflict,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ),
               ),
-            )),
-
+            const SizedBox(height: 20),
+            if (_futureBookings.isNotEmpty)
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Future bookings for the selected resource(s) are shown below. Please choose a time slot different those listed to avoid conflict.',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.black54,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildFutureBookingsTable('Operating Room'),
+                  _buildFutureBookingsTable('Doctor'),
+                  _buildFutureBookingsTable('Nurse'),
+                  _buildFutureBookingsTable('Technologist'),
+                ],
+              ),
           ],
         ),
       ),

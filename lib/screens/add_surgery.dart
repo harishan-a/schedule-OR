@@ -1,7 +1,10 @@
+import 'package:firebase_orscheduler/screens/profile.dart';
+import 'package:firebase_orscheduler/screens/schedule.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:dropdown_search/dropdown_search.dart';
+import 'package:firebase_orscheduler/screens/resource_check.dart';
 
 class AddSurgeryScreen extends StatefulWidget {
   const AddSurgeryScreen({super.key});
@@ -18,6 +21,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
   List<String> _selectedNurses = [];
   String? _notes;
   String? _selectedTechnologist;
+  int _selectedIndex = 2;
 
   final List<String> _surgeryTypes = [
     'Cardiac Surgery',
@@ -50,6 +54,32 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
     _fetchNurses();
     _fetchTechnologists();
   }
+
+  // Handles navigation based on the selected index in the BottomNavigationBar.
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => const ScheduleScreen()));
+        break;
+      case 1:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => ScheduleScreen()));
+        break;
+      case 2:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => AddSurgeryScreen()));
+        break;
+      case 3:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => const ProfileScreen()));
+        break;
+      case 4:
+      // Stay on the current screen
+        break;
+    }
+  }
+
 
   Future<void> _fetchTechnologists() async {
     try {
@@ -242,6 +272,37 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
       appBar: AppBar(
         title: Text('Add Surgery'),
         backgroundColor: Theme.of(context).colorScheme.primary,
+        actions: [
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(right: 8.0),
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ResourceCheck(),
+                      ),
+                    );
+                  },
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.lightBlueAccent,
+                  ),
+                  child: const Text(
+                    'Check Resource Usage',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16),
@@ -577,6 +638,38 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_month),
+            label: 'View Surgery Schedule',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.medication),
+            label: 'Add New Surgery',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.contacts),
+            label: 'Doctor List',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.amber[800],
+        onTap: _onItemTapped,
       ),
     );
   }

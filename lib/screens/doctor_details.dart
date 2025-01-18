@@ -1,6 +1,10 @@
+import 'package:firebase_orscheduler/screens/home.dart';
+import 'package:firebase_orscheduler/screens/profile.dart';
+import 'package:firebase_orscheduler/screens/schedule.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'staff_details.dart'; // Import the StaffDetailPage
+import 'add_surgery.dart';
+import 'staff_details.dart';
 
 class DoctorDetailsScreen extends StatefulWidget {
   const DoctorDetailsScreen({super.key});
@@ -15,6 +19,7 @@ class DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
   String _searchQuery = '';
   String? selectedDepartment;
   String? selectedRole;
+  int _selectedIndex = 4; // Set initial index for the DoctorDetailsScreen
 
   @override
   void initState() {
@@ -39,6 +44,31 @@ class DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
 
       return matchesSearch && matchesDepartment && matchesRole;
     }).toList();
+  }
+
+  // Handles navigation based on the selected index in the BottomNavigationBar.
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => const HomeScreen())); // Replace with HomeScreen if needed
+        break;
+      case 1:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => ScheduleScreen()));
+        break;
+      case 2:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => AddSurgeryScreen()));
+        break;
+      case 3:
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => const ProfileScreen()));
+        break;
+      case 4:
+      // Stays on the current screen
+        break;
+    }
   }
 
   @override
@@ -119,7 +149,7 @@ class DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                           final user = filteredDocs[index];
                           return Card(
                             margin: const EdgeInsets.all(8.0),
-                            color: Color(0xFFC8EEF3),
+                            color: const Color(0xFFC8EEF3),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             elevation: 3,
                             child: ListTile(
@@ -143,6 +173,38 @@ class DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
             ),
           ),
         ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_month),
+            label: 'View Surgery Schedule',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.medication),
+            label: 'Add New Surgery',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.contacts),
+            label: 'Doctor List',
+            backgroundColor: Color.fromARGB(218, 1, 196, 164),
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.amber[800],
+        onTap: _onItemTapped,
       ),
     );
   }
