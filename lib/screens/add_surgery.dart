@@ -1,3 +1,4 @@
+import 'package:firebase_orscheduler/screens/doctor_details.dart';
 import 'package:firebase_orscheduler/screens/profile.dart';
 import 'package:firebase_orscheduler/screens/schedule.dart';
 import 'package:flutter/material.dart';
@@ -76,7 +77,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
         Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => const ProfileScreen()));
         break;
       case 4:
-      // Stay on the current screen
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => const DoctorDetailsScreen()));
+        break;
         break;
     }
   }
@@ -272,6 +274,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Add Surgery'),
+        automaticallyImplyLeading: false,    // removes the back button
         backgroundColor: Theme.of(context).colorScheme.primary,
         actions: [
           Row(

@@ -31,7 +31,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
   String _userFirstName = '';
   String _nextSurgeryDate = '';
   bool _isLoading = true;
-  int _selectedIndex = 1; // Set the initial index for ProfileScreen
+  int _selectedIndex = 1;
 
   // Handles navigation based on the selected index in the BottomNavigationBar
   void _onItemTapped(int index) {
@@ -188,6 +188,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Schedule'),
+        automaticallyImplyLeading: false,    // removes the back button
         actions: [
           IconButton(
             icon: const Icon(Icons.view_list),
