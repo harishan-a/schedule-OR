@@ -19,7 +19,7 @@ class DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
   String _searchQuery = '';
   String? selectedDepartment;
   String? selectedRole;
-  int _selectedIndex = 4; // Set initial index for the DoctorDetailsScreen
+  int _selectedIndex = 4;
 
   @override
   void initState() {
@@ -54,7 +54,7 @@ class DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
 
     switch (index) {
       case 0:
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => const HomeScreen())); // Replace with HomeScreen if needed
+        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => const HomeScreen()));
         break;
       case 1:
         Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => ScheduleScreen()));
@@ -76,6 +76,7 @@ class DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Details of Doctors and Nurses'),
+        automaticallyImplyLeading: false,    // removes the back button
       ),
       body: Row(
         children: [

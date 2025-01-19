@@ -78,12 +78,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         title: const Text('Edit Profile'),
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () {
-            Navigator.of(context).pop(); // Back navigation
-          },
-        ),
+        automaticallyImplyLeading: false,    // removes the back button
+        // leading: IconButton(
+        //   icon: const Icon(Icons.arrow_back, color: Colors.black),
+        //   onPressed: () {
+        //     Navigator.of(context).pop(); // Back navigation
+        //   },
+        // ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -111,7 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: IconButton(
                       icon: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
                       onPressed: () {
-                        // Handle profile picture change
+
                       },
                     ),
                   ),
