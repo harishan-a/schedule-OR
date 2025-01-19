@@ -111,6 +111,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Home'),
+        automaticallyImplyLeading: false,    // removes the back button
         backgroundColor: Theme.of(context).colorScheme.primary,
         actions: [
           IconButton(
