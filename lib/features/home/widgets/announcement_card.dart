@@ -161,7 +161,3 @@ class AnnouncementCard extends StatelessWidget {
   }
 }
 
-// =============================================================================
-// TEST PASSED: Functionality remains unchanged; code cleanup and documentation added.
-// Last updated: [Current Date]
-// ============================================================================= 

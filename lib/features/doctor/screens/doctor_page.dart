@@ -543,8 +543,3 @@ class _DoctorPageState extends State<DoctorPage> {
     }
   }
 }
-
-// =============================================================================
-// TEST PASSED: Functionality remains unchanged; code cleanup and documentation added.
-// Last updated: [Current Date]
-// =============================================================================

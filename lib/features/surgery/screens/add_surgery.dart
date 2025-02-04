@@ -1808,8 +1808,3 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
     }
   }
 }
-
-// =============================================================================
-// TEST PASSED: Functionality remains unchanged; code cleanup and documentation added.
-// Last updated: [Current Date]
-// =============================================================================
