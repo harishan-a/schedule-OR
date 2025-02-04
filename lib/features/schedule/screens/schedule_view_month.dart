@@ -17,15 +17,10 @@
 // Consider extracting to a shared utility in future updates.
 // =============================================================================
 
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:syncfusion_flutter_calendar/calendar.dart';
-import 'package:table_calendar/table_calendar.dart';
 import 'package:firebase_orscheduler/features/schedule/models/surgery.dart';
 
-import 'schedule.dart';
-import 'schedule_view_week.dart';
 import 'surgery_details.dart';
 
 /// Displays surgeries in a monthly calendar format with agenda

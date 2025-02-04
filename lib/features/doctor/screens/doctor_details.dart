@@ -11,13 +11,8 @@
 // =============================================================================
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../../../features/home/screens/home.dart';
-import '../../../features/profile/screens/profile.dart';
-import '../../../features/schedule/screens/schedule.dart';
-import '../../../features/surgery/screens/add_surgery.dart';
 import 'staff_details.dart';
 import 'package:firebase_orscheduler/shared/widgets/custom_navigation_bar.dart';
 
@@ -483,8 +478,6 @@ class _DoctorPageState extends State<DoctorPage> {
   /// Returns filtered list of staff members matching the criteria
   List<DocumentSnapshot> _filterUsers(List<DocumentSnapshot> userDocs) {
     return userDocs.where((user) {
-      final firstName = (user['firstName'] ?? '').toString().toLowerCase();
-      final lastName = (user['lastName'] ?? '').toString().toLowerCase();
       final role = (user['role'] ?? '').toString().toLowerCase();
       final department = (user['department'] ?? '').toString().toLowerCase();
 

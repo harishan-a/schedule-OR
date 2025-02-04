@@ -31,7 +31,6 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dropdown_search/dropdown_search.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:multi_select_flutter/multi_select_flutter.dart';
@@ -111,7 +110,6 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
 
   // Animation controller for transitions
   late AnimationController _animationController;
-  late Animation<double> _fadeAnimation;
 
   // Auto-save timer
   Timer? _autoSaveTimer;
@@ -119,22 +117,13 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
   @override
   void initState() {
     super.initState();
-    _loadData();          // Load staff lists
-    _loadSavedForm();     // Restore saved form state
-    _setupAnimations();   // Initialize animations
-    _setupAutoSave();     // Start auto-save timer
-  }
-
-  /// Sets up fade animation for transitions
-  void _setupAnimations() {
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
-    );
-    _animationController.forward();
+    _loadData();          // Load staff lists
+    _loadSavedForm();     // Restore saved form state
+    _setupAutoSave();     // Start auto-save timer
   }
 
   /// Initializes auto-save functionality

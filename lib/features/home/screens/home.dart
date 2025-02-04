@@ -15,7 +15,6 @@
 // =============================================================================
 
 import 'package:flutter/material.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -23,16 +22,12 @@ import 'package:intl/intl.dart';
 import 'dart:io' show Platform;
 
 import '../services/home_service.dart';
-import '../models/surgery_summary.dart';
 import '../models/user_stats.dart';
 import '../widgets/stat_card.dart';
-import '../widgets/activity_card.dart';
-import '../widgets/announcement_card.dart';
 import '../../../shared/widgets/custom_navigation_bar.dart';
 import '../../schedule/screens/schedule.dart';
 import '../../surgery/screens/add_surgery.dart';
 import '../../profile/screens/profile.dart';
-import '../../surgery/widgets/surgery_list.dart';
 import '../../surgery/screens/surgery_details.dart';
 
 /// HomeScreen serves as the main dashboard of the application, providing real-time

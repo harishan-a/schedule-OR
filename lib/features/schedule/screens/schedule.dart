@@ -32,7 +32,6 @@ import 'package:firebase_orscheduler/features/home/screens/home.dart';
 import 'package:firebase_orscheduler/features/surgery/screens/add_surgery.dart';
 import 'package:firebase_orscheduler/features/doctor/screens/doctor_page.dart';
 import 'package:firebase_orscheduler/shared/widgets/custom_navigation_bar.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_orscheduler/features/schedule/models/surgery.dart';
 
 /// Available schedule view types

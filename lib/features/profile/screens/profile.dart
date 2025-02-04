@@ -21,11 +21,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import '../../../features/home/screens/home.dart';
-import '../../../features/schedule/screens/schedule.dart';
-import '../../../features/surgery/screens/add_surgery.dart';
 import 'package:firebase_orscheduler/shared/widgets/custom_navigation_bar.dart';
-import '../../../features/doctor/screens/doctor_page.dart';
 
 /// A screen widget that displays and manages user profile information
 class ProfileScreen extends StatefulWidget {

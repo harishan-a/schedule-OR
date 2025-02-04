@@ -34,6 +34,7 @@ import 'features/surgery/screens/add_surgery.dart';
 import 'features/settings/screens/settings.dart';
 import 'shared/widgets/splash.dart';
 import 'shared/theme/app_theme.dart';
+import 'package:logging/logging.dart';
 
 // Global preferences instance for app-wide settings
 late SharedPreferences prefs;
@@ -48,6 +49,13 @@ Future<void> main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
   
+  // Initialize logging
+  Logger.root.level = Level.ALL;
+  Logger.root.onRecord.listen((record) {
+    // ignore: avoid_print
+    print('${record.level.name}: ${record.time}: ${record.message}');
+  });
+
   // Initialize Firebase with platform-specific options
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,

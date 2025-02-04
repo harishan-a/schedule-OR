@@ -20,11 +20,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/surgery_summary.dart';
 import '../models/user_stats.dart';
+import 'package:logging/logging.dart';
 
 /// Service class for managing home screen data and operations
 class HomeService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final _logger = Logger('HomeService');
 
   /// Streams upcoming surgeries for the current user
   /// 
@@ -39,7 +41,7 @@ class HomeService {
     if (user == null) return Stream.value([]);
 
     final userDisplayName = user.displayName ?? '';
-    print('HomeService: Getting upcoming surgeries for user: $userDisplayName');
+    _logger.info('Getting upcoming surgeries for user: $userDisplayName');
 
     return _firestore
         .collection('surgeries')
@@ -54,7 +56,7 @@ class HomeService {
         .limit(5)
         .snapshots()
         .map((snapshot) {
-          print('HomeService: Found ${snapshot.docs.length} upcoming surgeries');
+          _logger.info('Found ${snapshot.docs.length} upcoming surgeries');
           return snapshot.docs
               .map((doc) => SurgerySummary.fromFirestore(doc))
               .toList();
@@ -70,7 +72,7 @@ class HomeService {
     if (user == null) return Stream.value([]);
 
     final userDisplayName = user.displayName ?? '';
-    print('HomeService: Getting recent activities for user: $userDisplayName');
+    _logger.info('Getting recent activities for user: $userDisplayName');
 
     return _firestore
         .collection('surgeries')
@@ -83,7 +85,7 @@ class HomeService {
         .limit(5)
         .snapshots()
         .map((snapshot) {
-          print('HomeService: Found ${snapshot.docs.length} recent activities');
+          _logger.info('Found ${snapshot.docs.length} recent activities');
           return snapshot.docs
               .map((doc) => SurgerySummary.fromFirestore(doc))
               .toList();
@@ -143,7 +145,7 @@ class HomeService {
           );
         })
         .handleError((error) {
-          print('Error getting user stats: $error');
+          _logger.warning('Error getting user stats: $error');
           return UserStats.empty();
         });
   }
@@ -197,7 +199,7 @@ class HomeService {
         inProgressSurgeries: inProgress,
       );
     } catch (e) {
-      print('Error fetching user stats: $e');
+      _logger.severe('Error fetching user stats: $e');
       return UserStats.empty();
     }
   }
@@ -222,7 +224,7 @@ class HomeService {
 
       return doc.data() ?? {};
     } catch (e) {
-      print('Error getting user profile: $e');
+      _logger.severe('Error getting user profile: $e');
       return {};
     }
   }
@@ -250,7 +252,7 @@ class HomeService {
                 })
             .toList())
         .handleError((error) {
-          print('Error getting announcements: $error');
+          _logger.warning('Error getting announcements: $error');
           return [];
         });
   }
@@ -274,7 +276,7 @@ class HomeService {
         .snapshots()
         .map((snapshot) => snapshot.docs)
         .handleError((error) {
-          print('Error getting user surgeries: $error');
+          _logger.warning('Error getting user surgeries: $error');
           return [];
         });
   }
@@ -289,7 +291,7 @@ class HomeService {
         .orderBy('startTime', descending: true)
         .snapshots()
         .handleError((error) {
-          print('Error getting surgeries: $error');
+          _logger.warning('Error getting surgeries: $error');
           throw error;
         });
   }
@@ -312,7 +314,7 @@ class HomeService {
 
       return doc.data() ?? {};
     } catch (e) {
-      print('Error getting user settings: $e');
+      _logger.severe('Error getting user settings: $e');
       return {};
     }
   }
@@ -333,8 +335,17 @@ class HomeService {
           .doc('preferences')
           .set(settings, SetOptions(merge: true));
     } catch (e) {
-      print('Error saving user settings: $e');
+      _logger.severe('Error saving user settings: $e');
       rethrow;
+    }
+  }
+
+  Future<void> someMethod() async {
+    try {
+      _logger.info('Your log message here');
+      // Replace all print statements with _logger.info or _logger.warning
+    } catch (e) {
+      _logger.severe('Error: $e');
     }
   }
 }

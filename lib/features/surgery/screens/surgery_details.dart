@@ -441,7 +441,6 @@ class SurgeryDetailsScreen extends StatelessWidget {
     return Builder(
       builder: (context) {
         final color = _getStatusColor(status);
-        final colorScheme = Theme.of(context).colorScheme;
         
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),

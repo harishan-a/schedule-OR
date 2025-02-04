@@ -418,8 +418,6 @@ class _StaffDetailPageState extends State<StaffDetailPage> with SingleTickerProv
 
   /// Builds action buttons for messaging and scheduling
   Widget _buildActionButtons(BuildContext context) {
-    final theme = Theme.of(context);
-    
     return Row(
       children: [
         Expanded(

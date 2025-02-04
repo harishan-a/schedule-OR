@@ -1,9 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:logging/logging.dart';
 
 class ResourceCheckService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final _logger = Logger('ResourceCheckService');
 
   // Check room availability for a specific time slot
   Future<bool> isRoomAvailable(String roomId, DateTime startTime, DateTime endTime) async {
@@ -25,7 +25,7 @@ class ResourceCheckService {
 
       return conflictingBookings.docs.isEmpty;
     } catch (e) {
-      print('Error checking room availability: $e');
+      _logger.severe('Error checking room availability: $e');
       rethrow;
     }
   }
@@ -54,7 +54,7 @@ class ResourceCheckService {
 
       return conflictingBookings.docs.isEmpty;
     } catch (e) {
-      print('Error checking staff availability: $e');
+      _logger.severe('Error checking staff availability: $e');
       rethrow;
     }
   }
@@ -87,7 +87,7 @@ class ResourceCheckService {
           .where((room) => !bookedRoomIds.contains(room.id))
           .toList();
     } catch (e) {
-      print('Error getting available rooms: $e');
+      _logger.severe('Error getting available rooms: $e');
       rethrow;
     }
   }
@@ -141,7 +141,7 @@ class ResourceCheckService {
           .where((staff) => !allBookedStaff.contains(staff.id))
           .toList();
     } catch (e) {
-      print('Error getting available staff: $e');
+      _logger.severe('Error getting available staff: $e');
       rethrow;
     }
   }
@@ -162,7 +162,7 @@ class ResourceCheckService {
 
       return surgeries.docs;
     } catch (e) {
-      print('Error getting surgeries in range: $e');
+      _logger.severe('Error getting surgeries in range: $e');
       rethrow;
     }
   }
@@ -173,8 +173,19 @@ class ResourceCheckService {
       final doc = await _firestore.collection(collection).doc(resourceId).get();
       return doc.exists ? doc : null;
     } catch (e) {
-      print('Error getting resource details: $e');
+      _logger.severe('Error getting resource details: $e');
       rethrow;
+    }
+  }
+
+  Future<bool> checkResourceAvailability() async {
+    try {
+      _logger.info('Checking resource availability');
+      // Replace print statements with _logger.info or _logger.warning
+      return true; // Default return value
+    } catch (e) {
+      _logger.severe('Error checking resource availability: $e');
+      return false;
     }
   }
 } 

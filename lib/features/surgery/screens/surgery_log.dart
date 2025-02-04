@@ -34,7 +34,6 @@ class _SurgeryLogScreenState extends State<SurgeryLogScreen> {
   DateTime? _endDate;
   String _selectedStatus = 'All';
   String _searchQuery = '';
-  bool _isLoading = false;
 
   // Available status options for filtering
   final List<String> _statusFilters = [
