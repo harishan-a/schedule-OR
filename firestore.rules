@@ -1,0 +1,72 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isUserAuthorized(surgery) {
+      return isAuthenticated() && 
+        (surgery.surgeon == request.auth.token.name ||
+         surgery.nurses.hasAny([request.auth.token.name]) ||
+         surgery.technologists.hasAny([request.auth.token.name]));
+    }
+    
+    function hasRole(roles) {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in roles;
+    }
+    
+    // Allow authenticated users to read and write their own notifications
+    match /user_notifications/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Allow authenticated users to read and write surgeries
+    match /surgeries/{surgeryId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && isUserAuthorized(resource.data);
+      allow delete: if isAuthenticated() && isUserAuthorized(resource.data);
+    }
+    
+    // Allow authenticated users to read user data
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Allow access to user settings subcollection
+      match /settings/{document=**} {
+        allow read, write: if request.auth.uid == userId;
+      }
+    }
+
+    // Resource collections
+    match /rooms/{roomId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole(['Admin', 'Surgical Coordinator']);
+    }
+
+    match /equipment/{equipmentId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole(['Admin', 'Surgical Coordinator']);
+    }
+
+    match /staff/{staffId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole(['Admin', 'HR Manager', 'Surgical Coordinator']);
+    }
+
+    // User preferences
+    match /user_preferences/{userId} {
+      allow read, write: if request.auth.uid == userId;
+    }
+
+    // Resource availability
+    match /resource_availability/{resourceId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole(['Admin', 'Surgical Coordinator']);
+    }
+  }
+} 

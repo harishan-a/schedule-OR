@@ -1,1 +1,6 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"flutter-orscheduler","appId":"1:515203068904:android:2c423d580d0ba978836a5d","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"flutter-orscheduler","appId":"1:515203068904:ios:d46a58adf5c259a6836a5d","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"flutter-orscheduler","configurations":{"android":"1:515203068904:android:2c423d580d0ba978836a5d","ios":"1:515203068904:ios:d46a58adf5c259a6836a5d","web":"1:515203068904:web:6a5eaad6676c1a79836a5d"}}}}}}
+{
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  }
+}
