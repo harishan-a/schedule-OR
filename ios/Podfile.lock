@@ -1189,8 +1189,8 @@ PODS:
     - Firebase/Messaging (= 11.6.0)
     - firebase_core
     - Flutter
-  - firebase_storage (12.4.1):
-    - Firebase/Storage (= 11.6.0)
+  - firebase_storage (12.3.2):
+    - Firebase/Storage (= 11.2.0)
     - firebase_core
     - Flutter
   - FirebaseAppCheck (11.6.0):
@@ -1452,26 +1452,26 @@ SPEC CHECKSUMS:
   abseil: d121da9ef7e2ff4cab7666e76c5a3e0915ae08c3
   AppCheckCore: cc8fd0a3a230ddd401f326489c99990b013f0c4f
   BoringSSL-GRPC: ca6a8e5d04812fce8ffd6437810c2d46f925eaeb
-  cloud_firestore: ad4e5097d52cb08257b37e31c272b2130f964934
-  Firebase: 374a441a91ead896215703a674d58cdb3e9d772b
-  firebase_app_check: 23aebfdb75c8fe765b1d3c2d5dbae06ab2b80312
-  firebase_auth: d60969911baf096763178412a28388c39f361e2d
-  firebase_core: d3deb82d05dac4bc13190f9d1770787fd6a1cda4
-  firebase_messaging: f27e82019a98ef3ea7e744b5b366fcd6b83e7f86
-  firebase_storage: 55175cbb2ba4ab2ba9515b47d8d49f638649ce73
-  FirebaseAppCheck: 44803909e253d677481e9e16eb719b0f58a7ddc2
-  FirebaseAppCheckInterop: 2376d3ec5cb4267facad4fe754ab4f301a5a519b
-  FirebaseAuth: 0304982cfe00df8d49bf533bc4becd3de36c7122
-  FirebaseAuthInterop: a6973d72aa242ea88ffb6be9c9b06c65455071da
-  FirebaseCore: 48b0dd707581cf9c1a1220da68223fb0a562afaa
-  FirebaseCoreExtension: 2d77d6430c16cf43ca2b04608302ed02b3598361
-  FirebaseCoreInternal: d98ab91e2d80a56d7b246856a8885443b302c0c2
-  FirebaseFirestore: d5dcc15724f291fe4b415322754bfa01616037fe
-  FirebaseFirestoreInternal: db478fdaeb98fe8686ff49e600f3871c224a76ff
-  FirebaseInstallations: efc0946fc756e4d22d8113f7c761948120322e8c
-  FirebaseMessaging: e1aca1fcc23e8b9eddb0e33f375ff90944623021
-  FirebaseSharedSwift: a45efd84d60ebbfdcdbaebc66948af3630459e62
-  FirebaseStorage: 52fb65a69d3e87675186881a08e2a5db86452ace
+  cloud_firestore: 85b71ddbbeda32758a10fc0e34f7eefc90fb3346
+  Firebase: 98e6bf5278170668a7983e12971a66b2cd57fc8c
+  firebase_app_check: fbbf60e36b93055b25d6d4ce80f5722f5be99863
+  firebase_auth: 0c77e299a8f2d1c74d1b1f6b78b3d4d802c19f47
+  firebase_core: 2bedc3136ec7c7b8561c6123ed0239387b53f2af
+  firebase_messaging: 15d114e1a41fc31e4fbabcd48d765a19eec94a38
+  firebase_storage: 61d62709bb4eda114cf68172f0dfde7ec23779ad
+  FirebaseAppCheck: a6a1c1ca169d795212b9e70b5cfb880083a28e7c
+  FirebaseAppCheckInterop: 7789a8adfb09e905ce02a76540b94b059029ea81
+  FirebaseAuth: 2a198b8cdbbbd457f08d74df7040feb0a0e7777a
+  FirebaseAuthInterop: c453b7ba7c49b88b2f519bb8d2e29edf7ada4a2a
+  FirebaseCore: a282032ae9295c795714ded2ec9c522fc237f8da
+  FirebaseCoreExtension: 30bb063476ef66cd46925243d64ad8b2c8ac3264
+  FirebaseCoreInternal: ac26d09a70c730e497936430af4e60fb0c68ec4e
+  FirebaseFirestore: 62708adbc1dfcd6d165a7c0a202067b441912dc9
+  FirebaseFirestoreInternal: ad9b9ee2d3d430c8f31333a69b3b6737a7206232
+  FirebaseInstallations: 58cf94dabf1e2bb2fa87725a9be5c2249171cda0
+  FirebaseMessaging: c9ec7b90c399c7a6100297e9d16f8a27fc7f7152
+  FirebaseSharedSwift: d39c2ad64a11a8d936ce25a42b00df47078bb59c
+  FirebaseStorage: 9353f926690b2329957860abfcbc8b4074fe45e8
   Flutter: e0871f40cf51350855a761d2e70bf5af5b9b5de7
   GoogleDataTransport: aae35b7ea0c09004c3797d53c8c41f66f219d6a7
   GoogleUtilities: 26a3abef001b6533cf678d3eb38fd3f614b7872d
