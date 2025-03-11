@@ -1,5 +1,5 @@
 /// A screen that displays detailed information about a specific surgery.
-/// 
+///
 /// This screen provides a real-time view of surgery details using Firestore streaming,
 /// featuring a modern, clean UI with:
 /// - Material Design 3 components and styling
@@ -7,7 +7,7 @@
 /// - Enhanced visual hierarchy and typography
 /// - Responsive layout with proper spacing
 /// - Card-based content organization with elevation
-/// 
+///
 /// The screen supports both direct model and Firestore data sources,
 /// and includes status update functionality via a floating action button.
 import 'package:flutter/material.dart';
@@ -16,17 +16,25 @@ import 'package:intl/intl.dart';
 
 class SurgeryDetailsScreen extends StatelessWidget {
   final String surgeryId;
+  final Stream<DocumentSnapshot>? stream;
 
   const SurgeryDetailsScreen({
     super.key,
     required this.surgeryId,
+    this.stream,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final colorScheme = Theme.of(context).colorScheme;
-    
+
+    final streamToUse = stream ??
+        FirebaseFirestore.instance
+            .collection('surgeries')
+            .doc(surgeryId)
+            .snapshots();
+
     return Scaffold(
       backgroundColor: isDark ? colorScheme.surface : colorScheme.background,
       appBar: AppBar(
@@ -45,26 +53,28 @@ class SurgeryDetailsScreen extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<DocumentSnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('surgeries')
-            .doc(surgeryId)
-            .snapshots(),
+        // stream: FirebaseFirestore.instance
+        //     .collection('surgeries')
+        //     .doc(surgeryId)
+        //     .snapshots(),
+        stream:streamToUse,
         builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.error_outline, 
-                    size: 64, 
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
                     color: colorScheme.error,
                   ),
                   const SizedBox(height: 16),
                   Text(
                     'Error: ${snapshot.error}',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: colorScheme.error,
-                    ),
+                          color: colorScheme.error,
+                        ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -84,8 +94,8 @@ class SurgeryDetailsScreen extends StatelessWidget {
                   Text(
                     'Loading surgery details...',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                   ),
                 ],
               ),
@@ -107,15 +117,15 @@ class SurgeryDetailsScreen extends StatelessWidget {
                   Text(
                     'Surgery not found',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'The requested surgery details are not available',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurfaceVariant.withOpacity(0.8),
-                    ),
+                          color: colorScheme.onSurfaceVariant.withOpacity(0.8),
+                        ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -149,10 +159,11 @@ class SurgeryDetailsScreen extends StatelessWidget {
                     children: [
                       Text(
                         data['surgeryType'] ?? 'Unknown Surgery Type',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.onSurface,
+                                ),
                       ),
                       const SizedBox(height: 16),
                       _buildStatusChip(data['status'] ?? 'Unknown'),
@@ -160,9 +171,10 @@ class SurgeryDetailsScreen extends StatelessWidget {
                         const SizedBox(height: 8),
                         Text(
                           'Last updated: ${_formatDateTime(data['lastUpdated'] as Timestamp?)}',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                         ),
                       ],
                     ],
@@ -244,11 +256,14 @@ class SurgeryDetailsScreen extends StatelessWidget {
                     value: data['surgeon'] ?? 'N/A',
                     isHighlighted: true,
                   ),
-                  _buildStaffList(context, 'Nurses', (data['nurses'] as List?)?.cast<String>() ?? []),
-                  _buildStaffList(context, 'Technologists', (data['technologists'] as List?)?.cast<String>() ?? []),
+                  _buildStaffList(context, 'Nurses',
+                      (data['nurses'] as List?)?.cast<String>() ?? []),
+                  _buildStaffList(context, 'Technologists',
+                      (data['technologists'] as List?)?.cast<String>() ?? []),
                 ],
               ),
-              if (data['notes']?.isNotEmpty == true || data['specialRequirements']?.isNotEmpty == true) ...[
+              if (data['notes']?.isNotEmpty == true ||
+                  data['specialRequirements']?.isNotEmpty == true) ...[
                 const SizedBox(height: 16),
                 _buildCard(
                   context,
@@ -295,7 +310,7 @@ class SurgeryDetailsScreen extends StatelessWidget {
     required List<Widget> children,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     return Card(
       elevation: 1,
       shadowColor: colorScheme.shadow.withOpacity(0.2),
@@ -315,9 +330,9 @@ class SurgeryDetailsScreen extends StatelessWidget {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colorScheme.onSurface,
-                  ),
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                      ),
                 ),
               ],
             ),
@@ -342,7 +357,7 @@ class SurgeryDetailsScreen extends StatelessWidget {
     bool isHighlighted = false,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -351,7 +366,9 @@ class SurgeryDetailsScreen extends StatelessWidget {
           Icon(
             icon,
             size: 20,
-            color: isHighlighted ? colorScheme.primary : colorScheme.onSurfaceVariant,
+            color: isHighlighted
+                ? colorScheme.primary
+                : colorScheme.onSurfaceVariant,
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -361,17 +378,19 @@ class SurgeryDetailsScreen extends StatelessWidget {
                 Text(
                   label,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: isHighlighted ? FontWeight.bold : FontWeight.normal,
-                  ),
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight:
+                            isHighlighted ? FontWeight.bold : FontWeight.normal,
+                      ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: colorScheme.onSurface,
-                    fontWeight: isHighlighted ? FontWeight.bold : FontWeight.normal,
-                  ),
+                        color: colorScheme.onSurface,
+                        fontWeight:
+                            isHighlighted ? FontWeight.bold : FontWeight.normal,
+                      ),
                 ),
               ],
             ),
@@ -381,9 +400,10 @@ class SurgeryDetailsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStaffList(BuildContext context, String title, List<String> staff) {
+  Widget _buildStaffList(
+      BuildContext context, String title, List<String> staff) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Column(
@@ -392,8 +412,8 @@ class SurgeryDetailsScreen extends StatelessWidget {
           Text(
             title,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
+                  color: colorScheme.onSurfaceVariant,
+                ),
           ),
           if (staff.isEmpty)
             Padding(
@@ -401,9 +421,9 @@ class SurgeryDetailsScreen extends StatelessWidget {
               child: Text(
                 'No staff assigned',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colorScheme.onSurfaceVariant.withOpacity(0.8),
-                  fontStyle: FontStyle.italic,
-                ),
+                      color: colorScheme.onSurfaceVariant.withOpacity(0.8),
+                      fontStyle: FontStyle.italic,
+                    ),
               ),
             )
           else
@@ -412,24 +432,29 @@ class SurgeryDetailsScreen extends StatelessWidget {
               child: Wrap(
                 spacing: 8,
                 runSpacing: 8,
-                children: staff.map((person) => Chip(
-                  avatar: Icon(
-                    Icons.person_outline,
-                    size: 18,
-                    color: colorScheme.primary,
-                  ),
-                  label: Text(
-                    person,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                  backgroundColor: colorScheme.surfaceVariant,
-                  side: BorderSide(
-                    color: colorScheme.outline.withOpacity(0.2),
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                )).toList(),
+                children: staff
+                    .map((person) => Chip(
+                          avatar: Icon(
+                            Icons.person_outline,
+                            size: 18,
+                            color: colorScheme.primary,
+                          ),
+                          label: Text(
+                            person,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: colorScheme.onSurface,
+                                ),
+                          ),
+                          backgroundColor: colorScheme.surfaceVariant,
+                          side: BorderSide(
+                            color: colorScheme.outline.withOpacity(0.2),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ))
+                    .toList(),
               ),
             ),
         ],
@@ -441,7 +466,7 @@ class SurgeryDetailsScreen extends StatelessWidget {
     return Builder(
       builder: (context) {
         final color = _getStatusColor(status);
-        
+
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           decoration: BoxDecoration(
@@ -464,9 +489,9 @@ class SurgeryDetailsScreen extends StatelessWidget {
               Text(
                 status,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: color,
-                  fontWeight: FontWeight.bold,
-                ),
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                    ),
               ),
             ],
           ),
@@ -497,7 +522,7 @@ class SurgeryDetailsScreen extends StatelessWidget {
 
   void _showStatusUpdateDialog(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -556,7 +581,7 @@ class SurgeryDetailsScreen extends StatelessWidget {
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
+
     return Material(
       color: Colors.transparent,
       child: ListTile(
@@ -564,8 +589,8 @@ class SurgeryDetailsScreen extends StatelessWidget {
         title: Text(
           status,
           style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: colorScheme.onSurface,
-          ),
+                color: colorScheme.onSurface,
+              ),
         ),
         tileColor: color.withOpacity(isDark ? 0.12 : 0.08),
         shape: RoundedRectangleBorder(
@@ -646,4 +671,4 @@ class SurgeryDetailsScreen extends StatelessWidget {
     final date = timestamp.toDate();
     return DateFormat('MMM d, y  h:mm a').format(date);
   }
-} 
+}

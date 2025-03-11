@@ -46,13 +46,15 @@ import 'package:firebase_orscheduler/shared/widgets/custom_navigation_bar.dart';
 
 /// Screen for adding new surgeries with auto-save and validation
 class AddSurgeryScreen extends StatefulWidget {
-  const AddSurgeryScreen({super.key});
+  final bool isTestMode;
+  const AddSurgeryScreen({super.key, this.isTestMode = false});
 
   @override
   AddSurgeryScreenState createState() => AddSurgeryScreenState();
 }
 
-class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerProviderStateMixin {
+class AddSurgeryScreenState extends State<AddSurgeryScreen>
+    with SingleTickerProviderStateMixin {
   // Form key for validation
   final _formKey = GlobalKey<FormState>();
 
@@ -69,15 +71,16 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
   List<String> _selectedNurses = [];
   String? _notes;
   String? _selectedTechnologist;
-  String _status = 'Scheduled';  // Default status for new surgeries
+  String _status = 'Scheduled'; // Default status for new surgeries
 
   // Navigation state
-  int _selectedIndex = 2;  // Index for Add Surgery tab
+  int _selectedIndex = 2; // Index for Add Surgery tab
 
   // Patient information controllers
   final TextEditingController _patientNameController = TextEditingController();
   final TextEditingController _patientAgeController = TextEditingController();
-  final TextEditingController _medicalRecordController = TextEditingController();
+  final TextEditingController _medicalRecordController =
+      TextEditingController();
   String? _patientGender;
 
   // Available options for dropdowns
@@ -121,9 +124,17 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _loadData();          // Load staff lists
-    _loadSavedForm();     // Restore saved form state
-    _setupAutoSave();     // Start auto-save timer
+
+    if (widget.isTestMode) {
+      _doctors = ['Dr. Test'];
+      _nurses = ['Nurse Test'];
+      _technologists = ['Tech Test'];
+    } else {
+      _loadData();  // Actual Firestore calls to fetch data.
+    }
+    //_loadData(); // Load staff lists
+    _loadSavedForm(); // Restore saved form state
+    _setupAutoSave(); // Start auto-save timer
   }
 
   /// Initializes auto-save functionality
@@ -154,7 +165,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
           _selectedNurses = List<String>.from(formData['selectedNurses'] ?? []);
           _selectedTechnologist = formData['selectedTechnologist'];
           _notes = formData['notes'];
-          
+
           // Parse dates with null safety
           if (formData['startTime'] != null) {
             _startTime = DateTime.parse(formData['startTime']);
@@ -248,7 +259,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
   }
 
   /// Handles navigation between main app screens
-  /// 
+  ///
   /// Index mapping:
   /// - 0: Schedule screen
   /// - 1: Schedule screen (alternate view)
@@ -262,25 +273,30 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
 
     switch (index) {
       case 0:
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => const ScheduleScreen()));
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (ctx) => const ScheduleScreen()));
         break;
       case 1:
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => ScheduleScreen()));
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (ctx) => ScheduleScreen()));
         break;
       case 2:
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => AddSurgeryScreen()));
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (ctx) => AddSurgeryScreen()));
         break;
       case 3:
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => const ProfileScreen()));
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (ctx) => const ProfileScreen()));
         break;
       case 4:
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (ctx) => const DoctorPage()));
+        Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (ctx) => const DoctorPage()));
         break;
     }
   }
 
   /// Fetches list of technologists from Firestore
-  /// 
+  ///
   /// Queries users collection for technologist role
   /// Returns sorted list of full names
   Future<void> _fetchTechnologists() async {
@@ -305,7 +321,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
   }
 
   /// Fetches list of doctors from Firestore
-  /// 
+  ///
   /// Queries users collection for doctor role
   /// Returns sorted list of full names
   Future<void> _fetchDoctors() async {
@@ -330,7 +346,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
   }
 
   /// Fetches list of nurses from Firestore
-  /// 
+  ///
   /// Queries users collection for nurse role
   /// Returns sorted list of full names
   Future<void> _fetchNurses() async {
@@ -355,13 +371,13 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
   }
 
   /// Checks for scheduling conflicts with existing surgeries
-  /// 
+  ///
   /// Verifies availability for:
   /// - Selected surgeon
   /// - Selected nurses
   /// - Selected technologist
   /// - Selected operating room
-  /// 
+  ///
   /// Returns true if conflicts found, false otherwise
   Future<bool> _checkConflicts() async {
     try {
@@ -378,19 +394,19 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
       var surgeonConflicts = await FirebaseFirestore.instance
           .collection('surgeries')
           .where('surgeon', isEqualTo: _selectedDoctor)
-          .where('status', whereIn: ['Scheduled', 'In Progress'])
-          .get();
+          .where('status', whereIn: ['Scheduled', 'In Progress']).get();
 
       for (var doc in surgeonConflicts.docs) {
         Timestamp surgeryStart = doc.data()['startTime'];
         Timestamp surgeryEnd = doc.data()['endTime'];
-        
-        if (_startTime.isBefore(surgeryEnd.toDate()) && 
+
+        if (_startTime.isBefore(surgeryEnd.toDate()) &&
             _endTime.isAfter(surgeryStart.toDate())) {
           if (!mounted) return true;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Conflict: Dr. $_selectedDoctor has another surgery scheduled at this time.'),
+              content: Text(
+                  'Conflict: Dr. $_selectedDoctor has another surgery scheduled at this time.'),
               backgroundColor: Colors.orange,
               duration: const Duration(seconds: 4),
             ),
@@ -404,19 +420,19 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
         var nurseConflicts = await FirebaseFirestore.instance
             .collection('surgeries')
             .where('nurses', arrayContains: nurse)
-            .where('status', whereIn: ['Scheduled', 'In Progress'])
-            .get();
+            .where('status', whereIn: ['Scheduled', 'In Progress']).get();
 
         for (var doc in nurseConflicts.docs) {
           Timestamp surgeryStart = doc.data()['startTime'];
           Timestamp surgeryEnd = doc.data()['endTime'];
-          
-          if (_startTime.isBefore(surgeryEnd.toDate()) && 
+
+          if (_startTime.isBefore(surgeryEnd.toDate()) &&
               _endTime.isAfter(surgeryStart.toDate())) {
             if (!mounted) return true;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Conflict: Nurse $nurse has another surgery scheduled at this time.'),
+                content: Text(
+                    'Conflict: Nurse $nurse has another surgery scheduled at this time.'),
                 backgroundColor: Colors.orange,
                 duration: const Duration(seconds: 4),
               ),
@@ -431,19 +447,19 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
         var techConflicts = await FirebaseFirestore.instance
             .collection('surgeries')
             .where('technologists', arrayContains: _selectedTechnologist)
-            .where('status', whereIn: ['Scheduled', 'In Progress'])
-            .get();
+            .where('status', whereIn: ['Scheduled', 'In Progress']).get();
 
         for (var doc in techConflicts.docs) {
           Timestamp surgeryStart = doc.data()['startTime'];
           Timestamp surgeryEnd = doc.data()['endTime'];
-          
-          if (_startTime.isBefore(surgeryEnd.toDate()) && 
+
+          if (_startTime.isBefore(surgeryEnd.toDate()) &&
               _endTime.isAfter(surgeryStart.toDate())) {
             if (!mounted) return true;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Conflict: Technologist $_selectedTechnologist has another surgery scheduled at this time.'),
+                content: Text(
+                    'Conflict: Technologist $_selectedTechnologist has another surgery scheduled at this time.'),
                 backgroundColor: Colors.orange,
                 duration: const Duration(seconds: 4),
               ),
@@ -458,19 +474,19 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
         var roomConflicts = await FirebaseFirestore.instance
             .collection('surgeries')
             .where('room', isEqualTo: _operatingRoom)
-            .where('status', whereIn: ['Scheduled', 'In Progress'])
-            .get();
+            .where('status', whereIn: ['Scheduled', 'In Progress']).get();
 
         for (var doc in roomConflicts.docs) {
           Timestamp surgeryStart = doc.data()['startTime'];
           Timestamp surgeryEnd = doc.data()['endTime'];
-          
-          if (_startTime.isBefore(surgeryEnd.toDate()) && 
+
+          if (_startTime.isBefore(surgeryEnd.toDate()) &&
               _endTime.isAfter(surgeryStart.toDate())) {
             if (!mounted) return true;
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Conflict: $_operatingRoom is already booked for this time slot.'),
+                content: Text(
+                    'Conflict: $_operatingRoom is already booked for this time slot.'),
                 backgroundColor: Colors.orange,
                 duration: const Duration(seconds: 4),
               ),
@@ -484,10 +500,11 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
     } catch (error) {
       debugPrint("Error checking conflicts: $error");
       if (!mounted) return true;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Error checking for conflicts. Please try again.'),
+          content:
+              const Text('Error checking for conflicts. Please try again.'),
           backgroundColor: Colors.red,
           action: SnackBarAction(
             label: 'Retry',
@@ -506,7 +523,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
   }
 
   /// Validates form data and shows preview if valid
-  /// 
+  ///
   /// Checks:
   /// - Required fields
   /// - Time slot validity
@@ -523,7 +540,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
   }
 
   /// Validates form data and submits to Firestore
-  /// 
+  ///
   /// Process:
   /// 1. Check for conflicts
   /// 2. Show loading indicator
@@ -561,7 +578,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
         'endTime': Timestamp.fromDate(_endTime),
         'surgeon': _selectedDoctor,
         'nurses': _selectedNurses,
-        'technologists': _selectedTechnologist != null ? [_selectedTechnologist] : [],
+        'technologists':
+            _selectedTechnologist != null ? [_selectedTechnologist] : [],
         'status': _status,
         'notes': _notes,
         'patientName': _patientNameController.text,
@@ -573,13 +591,14 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
       });
 
       if (!mounted) return;
-      
+
       // Show success animation
       await showDialog(
         context: context,
         barrierDismissible: false,
         builder: (ctx) => Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Padding(
             padding: const EdgeInsets.all(24.0),
             child: Column(
@@ -618,7 +637,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
                     TextButton(
                       onPressed: () {
                         Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (context) => const AddSurgeryScreen()),
+                          MaterialPageRoute(
+                              builder: (context) => const AddSurgeryScreen()),
                           (Route<dynamic> route) => false,
                         );
                       },
@@ -627,7 +647,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
                     ElevatedButton(
                       onPressed: () {
                         Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (context) => const ScheduleScreen()),
+                          MaterialPageRoute(
+                              builder: (context) => const ScheduleScreen()),
                           (Route<dynamic> route) => false,
                         );
                       },
@@ -635,7 +656,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 32, vertical: 12),
                       ),
                       child: const Text('View Schedule'),
                     ),
@@ -649,7 +671,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
     } catch (error) {
       debugPrint("Error adding surgery: $error");
       if (!mounted) return;
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Failed to schedule surgery. Please try again.'),
@@ -672,7 +694,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
   }
 
   /// Builds the main UI with theme-aware styling
-  /// 
+  ///
   /// Features:
   /// - Dark mode support
   /// - Responsive layout
@@ -697,7 +719,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
             context: context,
             builder: (context) => AlertDialog(
               title: const Text('Unsaved Changes'),
-              content: const Text('You have unsaved changes. Do you want to discard them?'),
+              content: const Text(
+                  'You have unsaved changes. Do you want to discard them?'),
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(false),
@@ -739,7 +762,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
             ? _buildLoadingIndicator(textColor)
             : _showPreview
                 ? _buildPreview(context, cardColor, textColor, borderColor)
-                : _buildForm(context, backgroundColor, cardColor, textColor, fillColor, borderColor, hintColor),
+                : _buildForm(context, backgroundColor, cardColor, textColor,
+                    fillColor, borderColor, hintColor),
         bottomNavigationBar: CustomNavigationBar(
           currentIndex: _selectedIndex,
           onTap: _onItemTapped,
@@ -771,12 +795,13 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
   }
 
   /// Builds the quick actions card for common operations
-  /// 
+  ///
   /// Features:
   /// - Resource check button
   /// - View schedule button
   /// - Theme-aware styling
-  Widget _buildQuickActionsCard(BuildContext context, Color cardColor, Color textColor) {
+  Widget _buildQuickActionsCard(
+      BuildContext context, Color cardColor, Color textColor) {
     return Card(
       elevation: 2,
       color: cardColor,
@@ -807,7 +832,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
                     Icons.analytics,
                     () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const ResourceCheck()),
+                      MaterialPageRoute(
+                          builder: (context) => const ResourceCheck()),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -817,7 +843,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
                     Icons.calendar_today,
                     () => Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const ScheduleScreen()),
+                      MaterialPageRoute(
+                          builder: (context) => const ScheduleScreen()),
                     ),
                   ),
                 ],
@@ -879,7 +906,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
   }
 
   /// Creates consistent input decoration for form fields
-  /// 
+  ///
   /// Parameters:
   /// - label: Field label text
   /// - icon: Leading icon
@@ -930,8 +957,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
             return Theme(
               data: Theme.of(context).copyWith(
                 colorScheme: Theme.of(context).colorScheme.copyWith(
-                  surface: isDarkMode ? Colors.grey[850] : Colors.white,
-                ),
+                      surface: isDarkMode ? Colors.grey[850] : Colors.white,
+                    ),
               ),
               child: child ?? const SizedBox(),
             );
@@ -945,7 +972,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
               return Theme(
                 data: Theme.of(context).copyWith(
                   timePickerTheme: TimePickerThemeData(
-                    backgroundColor: isDarkMode ? Colors.grey[850] : Colors.white,
+                    backgroundColor:
+                        isDarkMode ? Colors.grey[850] : Colors.white,
                     hourMinuteShape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -1103,7 +1131,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
                               items: _genderOptions.map((String gender) {
                                 return DropdownMenuItem(
                                   value: gender,
-                                  child: Text(gender, style: TextStyle(color: textColor)),
+                                  child: Text(gender,
+                                      style: TextStyle(color: textColor)),
                                 );
                               }).toList(),
                               onChanged: (String? newValue) {
@@ -1171,7 +1200,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
                         items: _surgeryTypes.map((String type) {
                           return DropdownMenuItem(
                             value: type,
-                            child: Text(type, style: TextStyle(color: textColor)),
+                            child:
+                                Text(type, style: TextStyle(color: textColor)),
                           );
                         }).toList(),
                         onChanged: (String? newValue) {
@@ -1200,7 +1230,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
                         items: _room.map((String room) {
                           return DropdownMenuItem(
                             value: room,
-                            child: Text(room, style: TextStyle(color: textColor)),
+                            child:
+                                Text(room, style: TextStyle(color: textColor)),
                           );
                         }).toList(),
                         onChanged: (String? newValue) {
@@ -1247,7 +1278,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
                             setState(() {
                               _startTime = newDateTime;
                               // Automatically set end time to 1 hour after start time
-                              _endTime = newDateTime.add(const Duration(hours: 1));
+                              _endTime =
+                                  newDateTime.add(const Duration(hours: 1));
                             });
                           }
                         },
@@ -1341,16 +1373,19 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
                       const SizedBox(height: 16),
                       MultiSelectDialogField<String>(
                         items: _nurses
-                            .map((nurse) => MultiSelectItem<String>(nurse, nurse))
+                            .map((nurse) =>
+                                MultiSelectItem<String>(nurse, nurse))
                             .toList(),
-                        title: Text("Select Nurses", style: TextStyle(color: textColor)),
+                        title: Text("Select Nurses",
+                            style: TextStyle(color: textColor)),
                         selectedColor: Theme.of(context).primaryColor,
                         decoration: BoxDecoration(
                           color: fillColor,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: borderColor),
                         ),
-                        buttonIcon: Icon(Icons.arrow_drop_down, color: textColor),
+                        buttonIcon:
+                            Icon(Icons.arrow_drop_down, color: textColor),
                         buttonText: Text(
                           "Select Nurses",
                           style: TextStyle(fontSize: 16, color: textColor),
@@ -1366,7 +1401,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
                               _selectedNurses.remove(value);
                             });
                           },
-                          chipColor: Theme.of(context).primaryColor.withOpacity(0.1),
+                          chipColor:
+                              Theme.of(context).primaryColor.withOpacity(0.1),
                           textStyle: TextStyle(color: textColor),
                         ),
                         backgroundColor: cardColor,
@@ -1383,7 +1419,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
                         items: _technologists.map((String tech) {
                           return DropdownMenuItem(
                             value: tech,
-                            child: Text(tech, style: TextStyle(color: textColor)),
+                            child:
+                                Text(tech, style: TextStyle(color: textColor)),
                           );
                         }).toList(),
                         onChanged: (String? newValue) {
@@ -1446,7 +1483,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
                       : const Text(
@@ -1467,12 +1505,13 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
   }
 
   /// Builds the preview screen for surgery details
-  /// 
+  ///
   /// Features:
   /// - Organized sections
   /// - Theme-aware styling
   /// - Edit and confirm buttons
-  Widget _buildPreview(BuildContext context, Color cardColor, Color textColor, Color borderColor) {
+  Widget _buildPreview(BuildContext context, Color cardColor, Color textColor,
+      Color borderColor) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20.0),
       child: Column(
@@ -1484,7 +1523,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
               _buildPreviewItem('Name', _patientNameController.text),
               _buildPreviewItem('Age', _patientAgeController.text),
               _buildPreviewItem('Gender', _patientGender ?? ''),
-              _buildPreviewItem('Medical Record', _medicalRecordController.text),
+              _buildPreviewItem(
+                  'Medical Record', _medicalRecordController.text),
             ],
             cardColor,
             textColor,
@@ -1496,9 +1536,12 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
             [
               _buildPreviewItem('Type', _surgeryType ?? ''),
               _buildPreviewItem('Room', _operatingRoom ?? ''),
-              _buildPreviewItem('Date', DateFormat('MMM dd, yyyy').format(_startTime)),
-              _buildPreviewItem('Time', '${DateFormat('hh:mm a').format(_startTime)} - ${DateFormat('hh:mm a').format(_endTime)}'),
-              _buildPreviewItem('Duration', _formatDuration(_startTime, _endTime)),
+              _buildPreviewItem(
+                  'Date', DateFormat('MMM dd, yyyy').format(_startTime)),
+              _buildPreviewItem('Time',
+                  '${DateFormat('hh:mm a').format(_startTime)} - ${DateFormat('hh:mm a').format(_endTime)}'),
+              _buildPreviewItem(
+                  'Duration', _formatDuration(_startTime, _endTime)),
             ],
             cardColor,
             textColor,
@@ -1557,7 +1600,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor:
+                                AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
                       : const Text('Confirm & Schedule'),
@@ -1571,7 +1615,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
   }
 
   /// Builds a section in the preview screen
-  /// 
+  ///
   /// Parameters:
   /// - title: Section header text
   /// - children: List of preview items
@@ -1614,7 +1658,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
   }
 
   /// Builds a preview item with label and value
-  /// 
+  ///
   /// Parameters:
   /// - label: Item label
   /// - value: Item value
@@ -1651,7 +1695,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
   }
 
   /// Formats duration between two dates
-  /// 
+  ///
   /// Returns formatted string like "2 hr 30 min"
   String _formatDuration(DateTime start, DateTime end) {
     final duration = end.difference(start);
@@ -1675,7 +1719,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
               SizedBox(height: 8),
               Text('• Time slots are available in 5-minute intervals'),
               SizedBox(height: 8),
-              Text('• End time is automatically set to 1 hour after start time'),
+              Text(
+                  '• End time is automatically set to 1 hour after start time'),
               SizedBox(height: 8),
               Text('• You can search for staff members using the search box'),
               SizedBox(height: 8),
@@ -1739,7 +1784,8 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
     if (duration.inMinutes < 30 || duration.inHours > 12) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Surgery duration must be between 30 minutes and 12 hours'),
+          content:
+              Text('Surgery duration must be between 30 minutes and 12 hours'),
           backgroundColor: Colors.red,
         ),
       );
@@ -1765,11 +1811,11 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
 
   Future<void> _loadData() async {
     if (!mounted) return;
-    
+
     setState(() {
       _isLoading = true;
     });
-    
+
     try {
       await Future.wait([
         _fetchDoctors(),

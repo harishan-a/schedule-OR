@@ -1,96 +1,114 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lib/screens/add_surgery.dart'; // Update path as needed
-//import 'package:cloud_firestore/cloud_firestore.dart';
-//import 'package:mockito/mockito.dart';
-import 'package:firebase_core/firebase_core.dart';
-//import 'package:cloud_firestore_mocks/cloud_firestore_mocks.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+// Import your updated widget.
+import 'package:firebase_orscheduler/features/surgery/screens/add_surgery.dart';
 
-\
-void main() async {
-  // Initialize Firebase before tests
+void main() {
+  // Set mock SharedPreferences.
   setUpAll(() async {
-    await Firebase.initializeApp();
+    SharedPreferences.setMockInitialValues({});
   });
 
-  // Mock Firestore instance
-  final MockFirestoreInstance mockFirestore = MockFirestoreInstance();
+  group('AddSurgeryScreen Widget Tests', () {
+    testWidgets('renders all main sections', (WidgetTester tester) async {
+      // Pass isTestMode: true to bypass Firebase calls.
+      await tester.pumpWidget(MaterialApp(home: AddSurgeryScreen(isTestMode: true)));
+      await tester.pumpAndSettle();
 
-  Widget createWidgetUnderTest() {
-    return MaterialApp(
-      home: Scaffold(
-        body: AddSurgeryScreen(),
-      ),
-    );
-  }
-
-  group('AddSurgeryScreen Tests', () {
-    testWidgets('displays surgery type dropdown', (WidgetTester tester) async {
-      await tester.pumpWidget(createWidgetUnderTest());
-      expect(find.text('Surgery Type'), findsOneWidget);
+      expect(find.text('Schedule New Surgery'), findsOneWidget);
+      expect(find.text('Patient Information'), findsOneWidget);
+      expect(find.text('Surgery Details'), findsOneWidget);
+      // Adjust this if "Schedule" appears more than once.
+      expect(find.text('Schedule'), findsNWidgets(2));
+      expect(find.text('Medical Team'), findsOneWidget);
+      expect(find.text('Additional Notes'), findsOneWidget);
     });
 
-    testWidgets('selects a surgery type', (WidgetTester tester) async {
-      await tester.pumpWidget(createWidgetUnderTest());
-      await tester.tap(find.byType(DropdownButtonFormField).first);
+    testWidgets('shows validation error if required fields are empty', (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(home: AddSurgeryScreen(isTestMode: true)));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Cardiac Surgery').last);
-      await tester.pumpAndSettle();
-      expect(find.text('Cardiac Surgery'), findsOneWidget);
-    });
 
-    testWidgets('validates form input fields', (WidgetTester tester) async {
-      await tester.pumpWidget(createWidgetUnderTest());
-
-      // Submit without filling form to trigger validation errors
-      await tester.tap(find.byType(ElevatedButton));
+      final previewButtonFinder = find.text('Preview Surgery Details');
+      await tester.ensureVisible(previewButtonFinder);
+      await tester.tap(previewButtonFinder);
       await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
 
-      expect(find.text('Please enter the surgery type'), findsOneWidget);
-      expect(find.text('Please enter the room'), findsOneWidget);
+      expect(find.text('Please fill in all required fields correctly'), findsOneWidget);
     });
 
-    testWidgets('successful form submission adds surgery to Firestore',
-        (WidgetTester tester) async {
-      // Update AddSurgeryScreen to accept Firestore instance for testing
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: AddSurgeryScreen(),
-        ),
-      ));
-
-      // Select surgery type
-      await tester.tap(find.byType(DropdownButtonFormField).first);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Cardiac Surgery').last);
+    testWidgets('preview mode displays entered data', (WidgetTester tester) async {
+      await tester.pumpWidget(MaterialApp(home: AddSurgeryScreen(isTestMode: true)));
       await tester.pumpAndSettle();
 
-      // Select operating room
-      await tester.tap(find.byType(DropdownButtonFormField).at(1));
+      // Enter Patient Information.
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Patient Name'),
+        'Jane Doe',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Age'),
+        '45',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Medical Record Number'),
+        'MRN987654',
+      );
+
+      // Select Gender from the dropdown.
+      final genderFieldFinder = find.byWidgetPredicate((widget) =>
+          widget is DropdownButtonFormField<String> &&
+          widget.decoration.labelText == 'Gender');
+      await tester.ensureVisible(genderFieldFinder);
+      await tester.tap(genderFieldFinder);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('OperatingRoom1').last);
+      await tester.tap(find.text('Female').first);
       await tester.pumpAndSettle();
 
-      // Select doctor
-      await tester.tap(find.byType(DropdownSearch).first);
+      // Select Surgery Type.
+      final surgeryTypeFieldFinder = find.byWidgetPredicate((widget) =>
+          widget is DropdownButtonFormField<String> &&
+          widget.decoration.labelText == 'Surgery Type');
+      await tester.ensureVisible(surgeryTypeFieldFinder);
+      await tester.tap(surgeryTypeFieldFinder);
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).first, 'Dr. Smith');
+      await tester.tap(find.text('Cardiac Surgery').first);
       await tester.pumpAndSettle();
 
-      // Fill in notes
-      await tester.enterText(find.byType(TextFormField), 'Scheduled surgery');
+      // Select Operating Room.
+      final operatingRoomFieldFinder = find.byWidgetPredicate((widget) =>
+          widget is DropdownButtonFormField<String> &&
+          widget.decoration.labelText == 'Operating Room');
+      await tester.ensureVisible(operatingRoomFieldFinder);
+      await tester.tap(operatingRoomFieldFinder);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OperatingRoom1').first);
+      await tester.pumpAndSettle();
 
-      // Submit form
-      await tester.tap(find.byType(ElevatedButton));
-      await tester.pump();
+      // For Nurse selection, tap the MultiSelect field.
+      final nurseFieldFinder = find.text('Select Nurses');
+      await tester.ensureVisible(nurseFieldFinder);
+      await tester.tap(nurseFieldFinder);
+      await tester.pumpAndSettle();
+      if (find.textContaining('Nurse').evaluate().isNotEmpty) {
+        await tester.tap(find.textContaining('Nurse').first);
+        await tester.pumpAndSettle();
+        final okButtonFinder = find.text('OK');
+        if (okButtonFinder.evaluate().isNotEmpty) {
+          await tester.tap(okButtonFinder.first);
+          await tester.pumpAndSettle();
+        }
+      }
 
-      // Check if data was added to Firestore
-      final addedSurgery = await mockFirestore
-          .collection('surgeries')
-          .where('surgeryType', isEqualTo: 'Cardiac Surgery')
-          .get();
+      final previewButtonFinder = find.text('Preview Surgery Details');
+      await tester.ensureVisible(previewButtonFinder);
+      await tester.tap(previewButtonFinder);
+      await tester.pumpAndSettle();
 
-      expect(addedSurgery.docs.isNotEmpty, true);
+      expect(find.text('Jane Doe'), findsWidgets);
+      expect(find.text('45'), findsWidgets);
+      expect(find.text('MRN987654'), findsWidgets);
     });
   });
 }
