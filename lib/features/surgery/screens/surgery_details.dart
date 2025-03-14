@@ -10,6 +10,7 @@
 /// 
 /// The screen supports both direct model and Firestore data sources,
 /// and includes status update functionality via a floating action button.
+library;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -28,7 +29,7 @@ class SurgeryDetailsScreen extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     
     return Scaffold(
-      backgroundColor: isDark ? colorScheme.surface : colorScheme.background,
+      backgroundColor: isDark ? colorScheme.surface : colorScheme.surface,
       appBar: AppBar(
         title: const Text('Surgery Details'),
         centerTitle: true,
@@ -424,7 +425,7 @@ class SurgeryDetailsScreen extends StatelessWidget {
                       color: colorScheme.onSurface,
                     ),
                   ),
-                  backgroundColor: colorScheme.surfaceVariant,
+                  backgroundColor: colorScheme.surfaceContainerHighest,
                   side: BorderSide(
                     color: colorScheme.outline.withOpacity(0.2),
                   ),

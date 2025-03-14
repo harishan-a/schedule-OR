@@ -10,6 +10,7 @@
 /// The filtering logic is implemented at the UI level to maintain flexibility,
 /// though this means some logic is duplicated between widgets.
 /// Note: Filtering logic duplication is maintained in this phase for stability.
+library;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
@@ -176,7 +177,7 @@ class _SurgeryLogScreenState extends State<SurgeryLogScreen> {
                 ),
               ),
             );
-          }).toList(),
+          }),
         ],
       ),
     );

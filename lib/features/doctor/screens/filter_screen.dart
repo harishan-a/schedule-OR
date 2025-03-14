@@ -25,11 +25,11 @@ class FilterScreen extends StatefulWidget {
   final Function(String?, String?) onApplyFilters;
 
   const FilterScreen({
-    Key? key,
+    super.key,
     this.selectedRole,
     this.selectedDepartment,
     required this.onApplyFilters,
-  }) : super(key: key);
+  });
 
   @override
   State<FilterScreen> createState() => _FilterScreenState();

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:lib/screens/add_surgery.dart'; // Update path as needed
-//import 'package:cloud_firestore/cloud_firestore.dart';
-//import 'package:mockito/mockito.dart';
+import 'package:firebase_orscheduler/features/surgery/screens/add_surgery.dart'; // Correct import path
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
-//import 'package:cloud_firestore_mocks/cloud_firestore_mocks.dart';
+import 'package:mockito/mockito.dart';
+import 'package:dropdown_search/dropdown_search.dart';
 
-\
+class MockFirestore extends Mock implements FirebaseFirestore {}
+
 void main() async {
   // Initialize Firebase before tests
   setUpAll(() async {
@@ -14,7 +15,7 @@ void main() async {
   });
 
   // Mock Firestore instance
-  final MockFirestoreInstance mockFirestore = MockFirestoreInstance();
+  final mockFirestore = MockFirestore();
 
   Widget createWidgetUnderTest() {
     return MaterialApp(

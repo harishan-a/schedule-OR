@@ -69,7 +69,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen> with SingleTickerPro
   List<String> _selectedNurses = [];
   String? _notes;
   String? _selectedTechnologist;
-  String _status = 'Scheduled';  // Default status for new surgeries
+  final String _status = 'Scheduled';  // Default status for new surgeries
 
   // Navigation state
   int _selectedIndex = 2;  // Index for Add Surgery tab

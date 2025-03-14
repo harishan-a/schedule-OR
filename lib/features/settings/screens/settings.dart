@@ -9,6 +9,7 @@
 /// The settings are stored in two places:
 /// 1. SharedPreferences: For immediate theme access on app startup
 /// 2. Firestore: For cloud sync and cross-device consistency
+library;
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';

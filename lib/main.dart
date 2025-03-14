@@ -25,6 +25,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:workmanager/workmanager.dart';
 import 'config/firebase_options.dart';
 import 'features/auth/screens/auth.dart';
 import 'features/home/screens/home.dart';
@@ -39,6 +40,27 @@ import 'package:logging/logging.dart';
 // Global preferences instance for app-wide settings
 late SharedPreferences prefs;
 bool _prefsInitialized = false;
+
+/// Background task callback
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+    final snapshot = await _firestore.collection('surgeries').get();
+    final currentTime = DateTime.now();
+
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final scheduledTime = (data['scheduledTime'] as Timestamp).toDate();
+
+      if (currentTime.isAfter(scheduledTime) && data['status'] == 'Scheduled') {
+        await _firestore.collection('surgeries').doc(doc.id).update({'status': 'In Progress'});
+      } else if (currentTime.isAfter(scheduledTime.add(Duration(hours: 1))) && data['status'] == 'In Progress') {
+        await _firestore.collection('surgeries').doc(doc.id).update({'status': 'Completed'});
+      }
+    }
+    return Future.value(true);
+  });
+}
 
 /// Application entry point
 /// Initializes essential services before running the app:
@@ -56,46 +78,66 @@ Future<void> main() async {
     print('${record.level.name}: ${record.time}: ${record.message}');
   });
 
-  // Initialize Firebase with platform-specific options
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-
-  // Initialize SharedPreferences for local settings storage
   try {
-    prefs = await SharedPreferences.getInstance();
-    _prefsInitialized = true;
-  } catch (e) {
-    debugPrint('Error initializing SharedPreferences: $e');
-    _prefsInitialized = false;
-  }
-
-  // Configure Firebase Messaging for notifications (mobile only)
-  if (!kIsWeb) {
-    try {
-      final messaging = FirebaseMessaging.instance;
-      await messaging.requestPermission();
-      await messaging.setForegroundNotificationPresentationOptions(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-    } catch (e) {
-      debugPrint('Error initializing Firebase Messaging: $e');
-    }
-  }
-
-  // Configure Firestore persistence based on platform
-  if (kIsWeb) {
-    await FirebaseFirestore.instance.enablePersistence();
-  } else {
-    FirebaseFirestore.instance.settings = const Settings(
-      persistenceEnabled: true,
-      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    // Initialize Firebase with platform-specific options
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
     );
-  }
+    debugPrint('Firebase initialized successfully.');
 
-  runApp(const MyApp());
+    // Initialize SharedPreferences for local settings storage
+    try {
+      prefs = await SharedPreferences.getInstance();
+      _prefsInitialized = true;
+      debugPrint('SharedPreferences initialized successfully.');
+    } catch (e) {
+      debugPrint('Error initializing SharedPreferences: $e');
+      _prefsInitialized = false;
+    }
+
+    // Configure Firebase Messaging for notifications (mobile only)
+    if (!kIsWeb) {
+      try {
+        final messaging = FirebaseMessaging.instance;
+        await messaging.requestPermission();
+        await messaging.setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        debugPrint('Firebase Messaging initialized successfully.');
+      } catch (e) {
+        debugPrint('Error initializing Firebase Messaging: $e');
+      }
+    }
+
+    // Configure Firestore persistence based on platform
+    if (kIsWeb) {
+      await FirebaseFirestore.instance.enablePersistence();
+      debugPrint('Firestore persistence enabled for web.');
+    } else {
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      );
+      debugPrint('Firestore persistence enabled for mobile.');
+    }
+
+    // Initialize Workmanager for mobile platforms only
+    if (!kIsWeb) {
+      Workmanager().initialize(callbackDispatcher, isInDebugMode: true);
+      Workmanager().registerPeriodicTask(
+        "1",
+        "updateSurgeryStatus",
+        frequency: Duration(minutes: 15),
+      );
+      debugPrint('Workmanager initialized successfully.');
+    }
+
+    runApp(const MyApp());
+  } catch (e) {
+    debugPrint('Error during initialization: $e');
+  }
 }
 
 /// Root application widget that configures the app-wide settings:
@@ -131,6 +173,7 @@ class _MyAppState extends State<MyApp> {
           _isLargeText = prefs.getBool('largeText') ?? false;
           _isHighContrast = prefs.getBool('highContrast') ?? false;
         });
+        debugPrint('Theme preferences loaded successfully.');
       }
     } catch (e) {
       debugPrint('Error loading theme preferences: $e');
@@ -156,6 +199,7 @@ class _MyAppState extends State<MyApp> {
           prefs.setBool('largeText', isLargeText),
           prefs.setBool('highContrast', isHighContrast),
         ]);
+        debugPrint('Theme preferences updated successfully.');
       } catch (e) {
         debugPrint('Error saving theme preferences: $e');
       }
@@ -196,13 +240,25 @@ class _MyAppState extends State<MyApp> {
             darkTheme: appTheme.darkTheme,
             themeMode: _isDark ? ThemeMode.dark : ThemeMode.light,
             // Handle authentication state for initial route
-            home: StreamBuilder(
+            home: StreamBuilder<User?>(
               stream: FirebaseAuth.instance.authStateChanges(),
               builder: (ctx, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const SplashScreen();
+                } else if (snapshot.hasError) {
+                  debugPrint('Error in authStateChanges: ${snapshot.error}');
+                  return Scaffold(
+                    body: Center(
+                      child: Text('Error: ${snapshot.error}'),
+                    ),
+                  );
+                } else if (snapshot.hasData) {
+                  debugPrint('User is authenticated: ${snapshot.data?.uid}');
+                  return const HomeScreen();
+                } else {
+                  debugPrint('User is not authenticated');
+                  return const AuthScreen();
                 }
-                return snapshot.hasData ? const HomeScreen() : const AuthScreen();
               },
             ),
             // Define named routes for navigation

@@ -45,12 +45,12 @@ class StatCard extends StatelessWidget {
   /// All parameters are required and must not be null.
   /// The [color] parameter is used for the icon and value styling.
   const StatCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.value,
     required this.color,
     required this.icon,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

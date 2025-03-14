@@ -41,10 +41,10 @@ class CustomNavigationBar extends StatelessWidget {
   final Function(int) onTap;
 
   const CustomNavigationBar({
-    Key? key,
+    super.key,
     required this.currentIndex,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   /// Handles navigation to different screens based on the selected index
   /// Includes platform-specific logic for web vs mobile views

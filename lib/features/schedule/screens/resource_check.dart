@@ -62,8 +62,8 @@ class ResourceCheckScreenState extends State<ResourceCheck> {
   List<String> _nurses = [];
   
   // Conflict tracking
-  List<String> _conflicts = [];
-  List<Map<String, dynamic>> _futureBookings = [];
+  final List<String> _conflicts = [];
+  final List<Map<String, dynamic>> _futureBookings = [];
 
   @override
   void initState() {

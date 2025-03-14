@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_orscheduler/features/schedule/models/surgery.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SurgeryDetails extends StatelessWidget {
   final Surgery surgery;
@@ -80,6 +81,13 @@ class SurgeryDetails extends StatelessWidget {
               ],
             ),
           ],
+          ElevatedButton(
+            onPressed: () async {
+              // Call the addOrUpdateSurgery function when the button is pressed
+              await addOrUpdateSurgery(surgery.id, surgery.startTime);
+            },
+            child: Text('Save Surgery'),
+          ),
         ],
       ),
     );
@@ -197,4 +205,14 @@ class SurgeryDetails extends StatelessWidget {
         return Colors.grey;
     }
   }
+}
+
+// Function to add or update a surgery document in Firestore
+Future<void> addOrUpdateSurgery(String surgeryId, DateTime scheduledTime) async {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  await _firestore.collection('surgeries').doc(surgeryId).set({
+    'scheduledTime': Timestamp.fromDate(scheduledTime),
+    'status': 'Scheduled',
+  }, SetOptions(merge: true));
 }

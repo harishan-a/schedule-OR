@@ -47,12 +47,12 @@ class AnnouncementCard extends StatelessWidget {
   /// All parameters are required and must not be null.
   /// The [priority] parameter should be one of: 'high', 'medium', 'low'
   const AnnouncementCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.message,
     required this.timestamp,
     required this.priority,
-  }) : super(key: key);
+  });
 
   /// Returns the appropriate color based on announcement priority
   /// Used for priority indicators and accents throughout the card

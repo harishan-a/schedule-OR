@@ -97,8 +97,6 @@ class AppTheme extends InheritedWidget {
             onSecondary: Colors.white,
             error: forceDark ? Colors.red[300]! : Colors.red,
             onError: Colors.white,
-            background: backgroundColor,
-            onBackground: onSurfaceColor,
             surface: surfaceColor,
             onSurface: onSurfaceColor,
             surfaceTint: surfaceColor,
@@ -111,7 +109,6 @@ class AppTheme extends InheritedWidget {
             seedColor: primaryColor,
             brightness: brightness,
           ).copyWith(
-            background: backgroundColor,
             surface: surfaceColor,
             onSurface: onSurfaceColor,
             surfaceTint: surfaceColor,
@@ -125,7 +122,7 @@ class AppTheme extends InheritedWidget {
       useMaterial3: true,  // Enables Material 3 design system
       colorScheme: colorScheme,
       textTheme: textTheme,
-      scaffoldBackgroundColor: colorScheme.background,
+      scaffoldBackgroundColor: colorScheme.surface,
 
       // AppBar theme configuration
       appBarTheme: AppBarTheme(
@@ -178,15 +175,15 @@ class AppTheme extends InheritedWidget {
         height: 65.0,  // Standard height for comfortable touch targets
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         // Icon theming based on selection state
-        iconTheme: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return IconThemeData(color: colorScheme.onPrimaryContainer);
           }
           return IconThemeData(color: colorScheme.onSurface.withOpacity(0.6));
         }),
         // Label theming based on selection state
-        labelTextStyle: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return textTheme.labelLarge?.copyWith(color: colorScheme.onPrimaryContainer);
           }
           return textTheme.labelLarge?.copyWith(
@@ -198,15 +195,15 @@ class AppTheme extends InheritedWidget {
       // Switch theme configuration
       switchTheme: SwitchThemeData(
         // Thumb color based on selection state
-        thumbColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return colorScheme.primary;
           }
           return null;  // Default color
         }),
         // Track color based on selection state
-        trackColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return colorScheme.primary.withOpacity(0.5);
           }
           return null;  // Default color

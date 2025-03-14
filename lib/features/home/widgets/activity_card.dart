@@ -40,10 +40,10 @@ class ActivityCard extends StatelessWidget {
   /// The [surgery] parameter must not be null and contains all the
   /// information to be displayed in the card.
   const ActivityCard({
-    Key? key,
+    super.key,
     required this.surgery,
     this.onTap,
-  }) : super(key: key);
+  });
 
   /// Returns the appropriate color for the given surgery status
   /// Used for status indicators and accents throughout the card
