@@ -74,47 +74,5 @@ void main() {
       await tester.tap(largeTextSwitch);
       await tester.pump();
     });
-
-    //
-    // testWidgets('toggles sound effects without crashing', (WidgetTester tester) async {
-    //   await pumpSettingsScreen(tester);
-    //
-    //   final soundEffectsSwitch = find.widgetWithText(SwitchListTile, 'Sound Effects');
-    //   expect(soundEffectsSwitch, findsOneWidget);
-    //
-    //   await tester.tap(soundEffectsSwitch);
-    //   await tester.pump();
-    // });
-    //
-    // testWidgets('opens Resource Check screen', (WidgetTester tester) async {
-    //   await pumpSettingsScreen(tester);
-    //
-    //   // Tap "Resource Check"
-    //   final resourceCheckTile = find.text('Resource Check');
-    //   expect(resourceCheckTile, findsOneWidget);
-    //
-    //   await tester.tap(resourceCheckTile);
-    //   await tester.pumpAndSettle();
-    //
-    //   // We should now be on ResourceCheckScreen
-    //   expect(find.byType(ResourceCheckScreen), findsOneWidget);
-    // });
-    //
-    // testWidgets('shows Terms of Service dialog', (WidgetTester tester) async {
-    //   await pumpSettingsScreen(tester);
-    //
-    //   final tosTile = find.text('Terms of Service');
-    //   expect(tosTile, findsOneWidget);
-    //
-    //   await tester.tap(tosTile);
-    //   await tester.pumpAndSettle();
-    //
-    //   // Dialog should appear
-    //   expect(find.text('Terms of Service'), findsWidgets);
-    //   // Close dialog
-    //   final closeBtn = find.text('Close');
-    //   await tester.tap(closeBtn);
-    //   await tester.pumpAndSettle();
-    // });
   });
 }
