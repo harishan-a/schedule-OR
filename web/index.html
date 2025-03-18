@@ -33,6 +33,26 @@
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
+  <!-- Firebase App (the core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  
+  <!-- Add Firebase Messaging -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
+  
+  <!-- Initialize Firebase and register service worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/firebase-messaging-sw.js')
+          .then(function (registration) {
+            console.log('Service Worker registered with scope:', registration.scope);
+          }).catch(function (error) {
+            console.log('Service Worker registration failed:', error);
+          });
+      });
+    }
+  </script>
+  
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

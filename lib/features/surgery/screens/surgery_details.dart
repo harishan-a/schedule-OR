@@ -13,6 +13,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_orscheduler/features/schedule/screens/schedule_provider.dart';
 
 class SurgeryDetailsScreen extends StatelessWidget {
   final String surgeryId;
@@ -607,61 +609,74 @@ class SurgeryDetailsScreen extends StatelessWidget {
 
   Future<void> _updateStatus(BuildContext context, String newStatus) async {
     try {
-      await FirebaseFirestore.instance
-          .collection('surgeries')
-          .doc(surgeryId)
-          .update({
-        'status': newStatus,
-        'lastUpdated': FieldValue.serverTimestamp(),
-      });
+      // Use the correct SurgeryProvider class from features/schedule/screens/schedule_provider.dart
+      final surgeryProvider = Provider.of<SurgeryProvider>(context, listen: false);
+      
+      // Use SurgeryProvider to update status (which handles notifications)
+      await surgeryProvider.updateSurgeryStatus(surgeryId, newStatus);
+      
       if (context.mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(
-                  Icons.check_circle_outline,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Text('Status updated to $newStatus'),
-              ],
+        
+        // Small delay to ensure any previous SnackBars are properly dismissed
+        await Future.delayed(const Duration(milliseconds: 100));
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text('Status updated to $newStatus'),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: _getStatusColor(newStatus),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: _getStatusColor(newStatus),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
+          );
+        }
       }
     } catch (e) {
       if (context.mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(
-                  Icons.error_outline,
-                  color: Colors.white,
-                  size: 20,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text('Error updating status: $e'),
-                ),
-              ],
+        
+        // Small delay to ensure any previous SnackBars are properly dismissed
+        await Future.delayed(const Duration(milliseconds: 100));
+        
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Error updating status: $e'),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: Colors.red,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
+          );
+        }
       }
     }
   }

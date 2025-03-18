@@ -25,20 +25,30 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:provider/provider.dart';
 import 'config/firebase_options.dart';
 import 'features/auth/screens/auth.dart';
 import 'features/home/screens/home.dart';
 import 'features/profile/screens/profile.dart';
 import 'features/schedule/screens/schedule.dart';
+import 'features/schedule/screens/schedule_provider.dart';
 import 'features/surgery/screens/add_surgery.dart';
 import 'features/settings/screens/settings.dart';
+import 'features/notifications/screens/notifications_screen.dart';
 import 'shared/widgets/splash.dart';
 import 'shared/theme/app_theme.dart';
 import 'package:logging/logging.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:firebase_orscheduler/services/reminder_service.dart';
+import 'package:firebase_orscheduler/services/notification_manager.dart';
 
 // Global preferences instance for app-wide settings
 late SharedPreferences prefs;
 bool _prefsInitialized = false;
+
+// Global service instances
+late ReminderService reminderService;
+late NotificationManager notificationManager;
 
 /// Application entry point
 /// Initializes essential services before running the app:
@@ -48,6 +58,9 @@ bool _prefsInitialized = false;
 Future<void> main() async {
   // Ensure Flutter bindings are initialized
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Load environment variables
+  await dotenv.load(fileName: '.env');
   
   // Initialize logging
   Logger.root.level = Level.ALL;
@@ -60,6 +73,20 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Configure Firestore persistence based on platform
+  try {
+    if (kIsWeb) {
+      await FirebaseFirestore.instance.enablePersistence();
+    } else {
+      FirebaseFirestore.instance.settings = const Settings(
+        persistenceEnabled: true,
+        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+      );
+    }
+  } catch (e) {
+    debugPrint('Error configuring Firestore persistence: $e');
+  }
 
   // Initialize SharedPreferences for local settings storage
   try {
@@ -85,14 +112,44 @@ Future<void> main() async {
     }
   }
 
-  // Configure Firestore persistence based on platform
-  if (kIsWeb) {
-    await FirebaseFirestore.instance.enablePersistence();
-  } else {
-    FirebaseFirestore.instance.settings = const Settings(
-      persistenceEnabled: true,
-      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-    );
+  // Initialize NotificationManager
+  try {
+    notificationManager = NotificationManager();
+    await notificationManager.initialize();
+    debugPrint('NotificationManager initialized successfully');
+  } catch (e) {
+    debugPrint('Error initializing NotificationManager: $e');
+    // Create a fallback notification manager that doesn't use platform-specific features
+    if (kIsWeb) {
+      debugPrint('Using web fallback for NotificationManager');
+      // In web, we'll at least initialize the Firestore part without the platform-specific features
+      try {
+        notificationManager = NotificationManager(isWebMode: true);
+        await notificationManager.initializeWeb();
+        debugPrint('Web fallback NotificationManager initialized');
+      } catch (webError) {
+        debugPrint('Error initializing web fallback NotificationManager: $webError');
+      }
+    }
+  }
+
+  // Initialize ReminderService for surgery notifications (mobile only)
+  if (!kIsWeb) {
+    try {
+      reminderService = ReminderService();
+      reminderService.startReminderService();
+      
+      // Explicitly run a manual check to verify reminders are working
+      reminderService.manuallyCheckReminders().then((_) {
+        debugPrint('Initial reminder check completed');
+      }).catchError((e) {
+        debugPrint('Error running initial reminder check: $e');
+      });
+      
+      debugPrint('Reminder service initialized and started');
+    } catch (e) {
+      debugPrint('Error initializing ReminderService: $e');
+    }
   }
 
   runApp(const MyApp());
@@ -179,43 +236,49 @@ class _MyAppState extends State<MyApp> {
       );
     }
 
-    // Configure the app with theme support
-    return AppTheme(
-      isDark: _isDark,
-      isLargeText: _isLargeText,
-      isHighContrast: _isHighContrast,
-      updateTheme: _updateTheme,
-      child: Builder(
-        builder: (context) {
-          final appTheme = AppTheme.of(context);
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: 'ORScheduler',
-            // Configure theme settings
-            theme: appTheme.theme,
-            darkTheme: appTheme.darkTheme,
-            themeMode: _isDark ? ThemeMode.dark : ThemeMode.light,
-            // Handle authentication state for initial route
-            home: StreamBuilder(
-              stream: FirebaseAuth.instance.authStateChanges(),
-              builder: (ctx, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const SplashScreen();
-                }
-                return snapshot.hasData ? const HomeScreen() : const AuthScreen();
+    // Configure the app with theme support and providers
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => SurgeryProvider()),
+      ],
+      child: AppTheme(
+        isDark: _isDark,
+        isLargeText: _isLargeText,
+        isHighContrast: _isHighContrast,
+        updateTheme: _updateTheme,
+        child: Builder(
+          builder: (context) {
+            final appTheme = AppTheme.of(context);
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: 'ORScheduler',
+              // Configure theme settings
+              theme: appTheme.theme,
+              darkTheme: appTheme.darkTheme,
+              themeMode: _isDark ? ThemeMode.dark : ThemeMode.light,
+              // Handle authentication state for initial route
+              home: StreamBuilder(
+                stream: FirebaseAuth.instance.authStateChanges(),
+                builder: (ctx, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SplashScreen();
+                  }
+                  return snapshot.hasData ? const HomeScreen() : const AuthScreen();
+                },
+              ),
+              // Define named routes for navigation
+              routes: {
+                '/auth': (context) => const AuthScreen(),
+                '/home': (context) => const HomeScreen(),
+                '/profile': (context) => const ProfileScreen(),
+                '/schedule': (context) => const ScheduleScreen(),
+                '/add-surgery': (context) => AddSurgeryScreen(),
+                '/settings': (context) => const SettingsScreen(),
+                '/notifications': (context) => const NotificationsScreen(),
               },
-            ),
-            // Define named routes for navigation
-            routes: {
-              '/auth': (context) => const AuthScreen(),
-              '/home': (context) => const HomeScreen(),
-              '/profile': (context) => const ProfileScreen(),
-              '/schedule': (context) => const ScheduleScreen(),
-              '/add-surgery': (context) => AddSurgeryScreen(),
-              '/settings': (context) => const SettingsScreen(),
-            },
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

@@ -23,11 +23,19 @@ service cloud.firestore {
       allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
     
+    // Allow authenticated users to read and write to the central surgery notifications collection
+    match /surgery_notifications/{notificationId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    
     // Allow authenticated users to read and write surgeries
     match /surgeries/{surgeryId} {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
-      allow update: if isAuthenticated() && isUserAuthorized(resource.data);
+      allow update: if isAuthenticated() && 
+        (isUserAuthorized(resource.data) || 
+         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lastUpdated'])));
       allow delete: if isAuthenticated() && isUserAuthorized(resource.data);
     }
     
@@ -36,9 +44,16 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && request.auth.uid == userId;
       
-      // Allow access to user settings subcollection
+      // Allow access to user settings subcollection for all authenticated users
       match /settings/{document=**} {
-        allow read, write: if request.auth.uid == userId;
+        allow read: if isAuthenticated();
+        allow write: if request.auth.uid == userId;
+      }
+      
+      // Allow access to user notifications subcollection - modified to allow cross-user notifications
+      match /notifications/{notificationId} {
+        allow read: if request.auth.uid == userId;
+        allow write: if isAuthenticated(); // Allow any authenticated user to write notifications
       }
     }
 

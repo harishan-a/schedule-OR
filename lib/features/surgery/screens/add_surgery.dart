@@ -43,6 +43,7 @@ import '../../../features/profile/screens/profile.dart';
 import '../../../features/schedule/screens/resource_check.dart';
 import '../../../features/schedule/screens/schedule.dart';
 import 'package:firebase_orscheduler/shared/widgets/custom_navigation_bar.dart';
+import '../../../services/notification_service.dart';
 
 /// Screen for adding new surgeries with auto-save and validation
 class AddSurgeryScreen extends StatefulWidget {
@@ -571,7 +572,7 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen>
       );
 
       // Save to Firestore
-      await FirebaseFirestore.instance.collection('surgeries').add({
+      final docRef = await FirebaseFirestore.instance.collection('surgeries').add({
         'surgeryType': _surgeryType,
         'room': _operatingRoom,
         'startTime': Timestamp.fromDate(_startTime),
@@ -589,6 +590,17 @@ class AddSurgeryScreenState extends State<AddSurgeryScreen>
         'createdAt': Timestamp.now(),
         'lastUpdated': Timestamp.now(),
       });
+
+      // Send notifications to all involved personnel
+      try {
+        // Import services
+        final notificationService = NotificationService();
+        await notificationService.sendScheduledNotification(docRef.id);
+        debugPrint('Notifications sent for surgery ${docRef.id}');
+      } catch (e) {
+        debugPrint('Error sending notifications: $e');
+        // Continue execution even if notifications fail
+      }
 
       if (!mounted) return;
 

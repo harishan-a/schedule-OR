@@ -24,6 +24,8 @@ import 'package:firebase_orscheduler/features/schedule/screens/resource_check_sc
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_orscheduler/features/settings/screens/settings.dart';
 import 'package:firebase_orscheduler/features/doctor/screens/doctor_page.dart';
+import 'package:firebase_orscheduler/shared/widgets/notification_badge.dart';
+import 'package:firebase_orscheduler/features/notifications/screens/notifications_screen.dart';
 
 /// A custom navigation bar widget that handles the main app navigation
 /// 
@@ -60,7 +62,7 @@ class CustomNavigationBar extends StatelessWidget {
         // Web platform shows month view by default, mobile shows day view
         targetScreen = ScheduleScreen(
           initialView: kIsWeb ? ViewType.month : ViewType.day,
-          allowViewChange: !kIsWeb,  // View changes restricted on web
+          allowViewChange: true,  // Always allow view changes
         );
         break;
       case 2:
@@ -68,6 +70,9 @@ class CustomNavigationBar extends StatelessWidget {
         break;
       case 3:
         targetScreen = const DoctorPage();
+        break;
+      case 4:
+        targetScreen = const NotificationsScreen();
         break;
       default:
         return;
@@ -235,6 +240,37 @@ class CustomNavigationBar extends StatelessWidget {
       ),
     );
   }
+  
+  /// Builds the notification item with badge
+  Widget _buildNotificationItem(BuildContext context, int index) {
+    final isSelected = currentIndex == index;
+    final theme = Theme.of(context);
+    final color = isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurface.withOpacity(0.6);
+
+    return InkWell(
+      onTap: () => _handleNavigation(context, index),
+      child: SizedBox(
+        height: _navBarHeight,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            NotificationBadge(
+              onTap: () => _handleNavigation(context, index),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Alerts',
+              style: TextStyle(
+                color: color,
+                fontSize: _labelSize,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   /// Builds the more options button
   Widget _buildMoreOptionsButton(BuildContext context) {
@@ -265,40 +301,28 @@ class CustomNavigationBar extends StatelessWidget {
     );
   }
 
-  /// Builds the centered Floating Action Button
+  /// Builds the floating action button for adding surgeries
   Widget _buildFAB(BuildContext context, ThemeData theme) {
-    return Container(
-      width: _fabSize,
-      height: 60,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            theme.colorScheme.primary,
-            theme.colorScheme.secondary,
+    return GestureDetector(
+      onTap: () => _handleNavigation(context, 2),
+      child: Container(
+        width: _fabSize,
+        height: _fabSize,
+        decoration: BoxDecoration(
+          color: currentIndex == 2 ? theme.colorScheme.primary : theme.colorScheme.secondary,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
           ],
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            spreadRadius: 2,
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: () => _handleNavigation(context, 2),
-          child: const Icon(
-            Icons.add,
-            size: 25,
-            color: Colors.white,
-          ),
+        child: Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 32,
         ),
       ),
     );

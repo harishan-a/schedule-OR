@@ -29,6 +29,9 @@ import '../../schedule/screens/schedule.dart';
 import '../../surgery/screens/add_surgery.dart';
 import '../../profile/screens/profile.dart';
 import '../../surgery/screens/surgery_details.dart';
+import '../../../shared/widgets/notification_badge.dart';
+import '../../notifications/screens/notifications_screen.dart';
+import '../../../services/notification_manager.dart';
 
 /// HomeScreen serves as the main dashboard of the application, providing real-time
 /// updates on surgeries, statistics, and quick access to key features.
@@ -98,20 +101,38 @@ class _HomeScreenState extends State<HomeScreen> {
       final settings = await fcm.requestPermission();
       
       if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-        await fcm.getToken(); // Get FCM token for device identification
+        try {
+          // Try to get the token but handle failure gracefully
+          await fcm.getToken();
+        } catch (e) {
+          // Just log and continue if we can't get a token
+          debugPrint('Could not get FCM token: $e');
+        }
+        
+        final notificationManager = NotificationManager();
         
         if (Platform.isIOS) {
-          final apnsToken = await fcm.getAPNSToken();
-          if (apnsToken != null) {
-            await fcm.subscribeToTopic('schedule_updates');
+          // On iOS, we'll try to set up notifications but won't fail the app if we can't
+          try {
+            // No need for extensive retries - handled in NotificationManager
+            await notificationManager.subscribeToTopic('schedule_updates');
+          } catch (e) {
+            // Just log and continue if topic subscription fails
+            debugPrint('Could not subscribe to FCM topics: $e');
           }
         } else {
           // Android platform
-          await fcm.subscribeToTopic('schedule_updates');
+          try {
+            await notificationManager.subscribeToTopic('schedule_updates');
+          } catch (e) {
+            // Just log and continue if topic subscription fails on Android
+            debugPrint('Could not subscribe to FCM topics on Android: $e');
+          }
         }
       }
     } catch (e) {
       // Handle notification setup errors silently
+      debugPrint('Error setting up push notifications: $e');
     }
   }
 
@@ -157,6 +178,7 @@ class _HomeScreenState extends State<HomeScreen> {
       floating: true,
       pinned: true,
       expandedHeight: 120.0,
+      automaticallyImplyLeading: false,
       backgroundColor: Theme.of(context).colorScheme.primary,
       flexibleSpace: FlexibleSpaceBar(
         title: const Text('Dashboard'),
@@ -190,10 +212,12 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       actions: [
-        IconButton(
-          icon: const Icon(Icons.notifications_outlined),
-          onPressed: () {
-            // Notifications feature to be implemented
+        NotificationBadge(
+          onTap: () {
+            Navigator.push(
+              context, 
+              MaterialPageRoute(builder: (context) => const NotificationsScreen())
+            );
           },
         ),
         IconButton(
@@ -381,6 +405,7 @@ class _HomeScreenState extends State<HomeScreen> {
   /// Features:
   /// - Add Surgery shortcut
   /// - View Schedule shortcut
+  /// - Notifications shortcut
   /// - Themed cards with icons
   Widget _buildQuickActions() {
     return Padding(
@@ -430,6 +455,15 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildNotificationCard(),
+              ),
+              Expanded(child: Container()),
+            ],
+          ),
         ],
       ),
     );
@@ -475,6 +509,32 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Builds a notification card with unread count
+  Widget _buildNotificationCard() {
+    final notificationManager = NotificationManager();
+    
+    return StreamBuilder<int>(
+      stream: notificationManager.getUnreadNotificationCount(),
+      builder: (context, snapshot) {
+        final unreadCount = snapshot.data ?? 0;
+        
+        return _buildActionCard(
+          title: unreadCount > 0 ? 'Notifications ($unreadCount)' : 'Notifications',
+          icon: Icons.notifications_active,
+          color: unreadCount > 0 ? Colors.red : Colors.orange,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const NotificationsScreen(),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

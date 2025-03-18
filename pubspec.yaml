@@ -26,9 +26,13 @@ dependencies:
   provider: ^6.1.2
   sliding_up_panel: ^2.0.0+1
   dropdown_search: ^5.0.3
-  rxdart: ^0.27.7
+  rxdart: ^0.28.0
   shared_preferences: ^2.5.1
   logging: ^1.2.0
+  http: ^0.13.6
+  flutter_dotenv: ^5.1.0
+  flutter_local_notifications: ^16.3.0
+  sendgrid_mailer: ^0.1.3
 
 dev_dependencies:
   flutter_test:
@@ -42,6 +46,8 @@ flutter:
   assets:
     - assets/images/doctorlogo.png
     - assets/images/
+    - .env
+    - functions/.env
 
 flutter_launcher_icons:
   android: "launcher_icon"

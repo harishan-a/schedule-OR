@@ -17,6 +17,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../models/surgery.dart';
+import 'package:firebase_orscheduler/services/notification_manager.dart';
 
 /// Manages the state and operations for surgery scheduling
 /// 
@@ -31,50 +32,132 @@ class SurgeryProvider extends ChangeNotifier {
   /// Firebase Firestore instance for database operations
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   
-  /// Adds a new surgery to the Firestore database
+  /// Notification Manager for sending notifications
+  final NotificationManager _notificationManager = NotificationManager();
+  
+  /// Adds a new surgery to the database and sends notifications
   /// 
   /// Parameters:
-  /// - surgery: The Surgery object containing all required fields
+  /// - data: Map containing surgery details (surgeryType, startTime, etc.)
   /// 
-  /// Throws an error if the database operation fails
-  Future<void> addSurgery(Surgery surgery) async {
+  /// Returns the ID of the newly created surgery
+  /// Throws an error if validation fails or create operation fails
+  Future<String> addSurgery(Map<String, dynamic> data) async {
+    // Validate required fields
+    if (!data.containsKey('surgeryType') || !data.containsKey('startTime')) {
+      throw ArgumentError('Surgery data must contain surgeryType and startTime');
+    }
+
+    // Add timestamps
+    data['created'] = FieldValue.serverTimestamp();
+    data['lastUpdated'] = FieldValue.serverTimestamp();
+
     try {
-      await _firestore.collection('surgeries').add({
-        'surgeryType': surgery.surgeryType,
-        'room': surgery.room,
-        'startTime': surgery.startTime,
-        'endTime': surgery.endTime,
-        'status': surgery.status,
-        'surgeon': surgery.surgeon,
-        'nurses': surgery.nurses,
-        'technologists': surgery.technologists,
-        'notes': surgery.notes,
-      });
+      // Add the surgery document to Firestore
+      final docRef = await _firestore.collection('surgeries').add(data);
+      final surgeryId = docRef.id;
+      debugPrint('Added surgery with ID: $surgeryId');
+
+      // Extract personnel IDs from data to send notifications
+      try {
+        final List<String> personnelIds = [];
+        
+        // Add doctor if present
+        if (data.containsKey('doctor') && data['doctor'] != null) {
+          personnelIds.add(data['doctor']);
+        }
+        
+        // Add nurses if present
+        if (data.containsKey('nurses') && data['nurses'] is List) {
+          final nurses = List<String>.from(data['nurses'] as List);
+          personnelIds.addAll(nurses);
+        }
+        
+        // Add technologists if present
+        if (data.containsKey('technologists') && data['technologists'] is List) {
+          final technologists = List<String>.from(data['technologists'] as List);
+          personnelIds.addAll(technologists);
+        }
+        
+        // Send notification to each personnel
+        for (final userId in personnelIds) {
+          await _notificationManager.sendScheduledNotificationByUserId(
+            surgeryId: surgeryId,
+            userId: userId,
+          );
+        }
+        
+        // If no personnel were assigned, we should still log this
+        if (personnelIds.isEmpty) {
+          debugPrint('No personnel assigned to surgery $surgeryId, no notifications sent');
+        } else {
+          debugPrint('Sent notifications to ${personnelIds.length} personnel for surgery $surgeryId');
+        }
+      } catch (e) {
+        // Log error but don't rethrow - don't fail surgery creation due to notification failure
+        debugPrint('Error sending scheduled notifications: $e');
+      }
+      
+      return surgeryId;
     } catch (e) {
       debugPrint('Error adding surgery: $e');
       rethrow;
     }
   }
 
-  /// Updates the status of an existing surgery
+  /// Updates the status of a surgery
   /// 
   /// Parameters:
-  /// - surgeryId: The unique identifier of the surgery
-  /// - newStatus: The new status to be applied
+  /// - surgeryId: The ID of the surgery to update
+  /// - newStatus: The new status value
   /// 
-  /// Throws an error if the surgery doesn't exist or update fails
+  /// Returns a Future that completes when the update is done
+  /// Throws an error if the operation fails
   Future<void> updateSurgeryStatus(String surgeryId, String newStatus) async {
     try {
+      // Get the surgery document from Firestore
+      final surgeryDoc = await _firestore.collection('surgeries').doc(surgeryId).get();
+      if (!surgeryDoc.exists) {
+        throw Exception('Surgery not found');
+      }
+      
+      final surgeryData = surgeryDoc.data() as Map<String, dynamic>;
+      final oldStatus = surgeryData['status'] as String;
+      
+      // Log the complete surgery data for debugging
+      debugPrint('Surgery data retrieved: $surgeryData');
+      debugPrint('Personnel check: surgeon=${surgeryData['surgeon']}, nurses=${surgeryData['nurses']}, technologists=${surgeryData['technologists']}');
+      
+      if (oldStatus == newStatus) {
+        debugPrint('Status unchanged, skipping update');
+        return; // No change needed
+      }
+      
+      // Update status in Firestore
       await _firestore.collection('surgeries').doc(surgeryId).update({
         'status': newStatus,
+        'lastUpdated': FieldValue.serverTimestamp(),
       });
+      
+      // Explicitly trigger status change notification
+      try {
+        debugPrint('Triggering status change notification: $oldStatus → $newStatus');
+        await _notificationManager.sendStatusChangeNotificationById(
+          surgeryId,
+          oldStatus,
+          newStatus
+        );
+      } catch (e) {
+        debugPrint('Error sending status change notification: $e');
+        // Don't rethrow as we still want to return success for the status update
+      }
     } catch (e) {
       debugPrint('Error updating surgery status: $e');
       rethrow;
     }
   }
 
-  /// Updates all fields of an existing surgery
+  /// Updates all fields of an existing surgery and sends notifications
   /// 
   /// Parameters:
   /// - surgery: The Surgery object containing updated fields
@@ -100,6 +183,15 @@ class SurgeryProvider extends ChangeNotifier {
     }
 
     try {
+      // Get the current data to compare for changes
+      final docSnapshot = await _firestore.collection('surgeries').doc(surgery.id).get();
+      if (!docSnapshot.exists) {
+        throw Exception('Surgery not found');
+      }
+      
+      final oldData = docSnapshot.data() ?? {};
+      
+      // Update the surgery
       await _firestore.collection('surgeries').doc(surgery.id).update({
         'surgeryType': surgery.surgeryType,
         'room': surgery.room,
@@ -110,9 +202,78 @@ class SurgeryProvider extends ChangeNotifier {
         'nurses': surgery.nurses,
         'technologists': surgery.technologists,
         'notes': surgery.notes,
+        'lastUpdated': FieldValue.serverTimestamp(),
       });
+      
+      // Prepare new data for notification
+      final newData = {
+        'surgeryType': surgery.surgeryType,
+        'room': surgery.room,
+        'startTime': Timestamp.fromDate(surgery.startTime),
+        'endTime': Timestamp.fromDate(surgery.endTime),
+        'status': surgery.status,
+        'surgeon': surgery.surgeon,
+        'nurses': surgery.nurses,
+        'technologists': surgery.technologists,
+        'notes': surgery.notes,
+      };
+      
+      // Send update notification if time, room, or status changed
+      final timeChanged = (oldData['startTime'] as Timestamp?)?.toDate().toString() != 
+                           surgery.startTime.toString();
+      final roomChanged = oldData['room'] != surgery.room;
+      final statusChanged = oldData['status'] != surgery.status;
+      
+      // Explicitly trigger update notification if something significant changed
+      if (timeChanged || roomChanged || statusChanged) {
+        try {
+          debugPrint('Triggering update notification for surgery ${surgery.id}');
+          await _notificationManager.sendUpdateNotificationById(
+            surgery.id,
+            oldData,
+            newData
+          );
+        } catch (e) {
+          debugPrint('Error sending update notification: $e');
+          // Don't rethrow as we still want to return success for the update
+        }
+      }
+      
+      // If status specifically changed, also send a status change notification
+      if (statusChanged) {
+        try {
+          final oldStatus = oldData['status'] as String? ?? 'Unknown';
+          debugPrint('Triggering status change notification: $oldStatus → ${surgery.status}');
+          await _notificationManager.sendStatusChangeNotificationById(
+            surgery.id,
+            oldStatus,
+            surgery.status
+          );
+        } catch (e) {
+          debugPrint('Error sending status change notification: $e');
+        }
+      }
     } catch (e) {
       debugPrint('Error updating surgery: $e');
+      rethrow;
+    }
+  }
+
+  /// Sends reminder notifications for upcoming surgeries
+  /// 
+  /// Parameters:
+  /// - surgeryId: The unique identifier of the surgery
+  /// - hoursBeforeSurgery: Hours before the surgery to send notification
+  /// 
+  /// Throws an error if operation fails
+  Future<void> sendApproachingNotification(String surgeryId, int hoursBeforeSurgery) async {
+    try {
+      await _notificationManager.sendApproachingNotificationById(
+        surgeryId, 
+        hoursBeforeSurgery: hoursBeforeSurgery
+      );
+    } catch (e) {
+      debugPrint('Error sending approaching notification: $e');
       rethrow;
     }
   }

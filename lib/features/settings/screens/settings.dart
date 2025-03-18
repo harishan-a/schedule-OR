@@ -14,9 +14,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:io' show Platform;
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_orscheduler/shared/widgets/custom_navigation_bar.dart';
 import 'package:firebase_orscheduler/shared/theme/app_theme.dart';
 import 'package:firebase_orscheduler/features/schedule/screens/resource_check_screen.dart';
+import 'package:firebase_orscheduler/services/notification_manager.dart';
 
 class SettingsScreen extends StatefulWidget {
   final bool isTestMode;
@@ -45,10 +48,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Notification and sound preferences
   bool _enableNotifications = true;
   bool _enableSoundEffects = true;
+  
+  // SMS notification preferences
+  bool _enableSmsNotifications = true;
+  bool _enableSmsScheduledNotifications = true;
+  bool _enableSmsApproachingNotifications = true;
+  bool _enableSmsUpdateNotifications = true;
+  bool _enableSmsStatusNotifications = true;
+  
+  // Push notification preferences
+  bool _enablePushNotifications = true;
+  bool _enablePushScheduledNotifications = true;
+  bool _enablePushApproachingNotifications = true;
+  bool _enablePushUpdateNotifications = true;
+  bool _enablePushStatusNotifications = true;
+  
+  // Email notification preferences
+  bool _enableEmailNotifications = false;
+  bool _enableEmailScheduledNotifications = false;
+  bool _enableEmailApproachingNotifications = false;
+  bool _enableEmailUpdateNotifications = false;
+  bool _enableEmailStatusNotifications = false;
 
   // Loading and user data state
   bool _isLoading = true;
   Map<String, dynamic> _userProfile = {};
+  
+  // Notification manager
+  final NotificationManager _notificationManager = NotificationManager();
 
   @override
   void initState() {
@@ -99,6 +126,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
               .collection('settings')
               .doc('preferences')
               .get();
+              
+          // Load notification settings specifically
+          final notificationSettingsDoc = await _firestore!
+              .collection('users')
+              .doc(user.uid)
+              .collection('settings')
+              .doc('notifications')
+              .get();
 
           // Load theme preferences from SharedPreferences for immediate access
           setState(() {
@@ -111,6 +146,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
               final data = settingsDoc.data() ?? {};
               _enableNotifications = data['notifications'] ?? true;
               _enableSoundEffects = data['soundEffects'] ?? true;
+            }
+            
+            // Apply notification settings
+            if (notificationSettingsDoc.exists) {
+              final data = notificationSettingsDoc.data() ?? {};
+              
+              // SMS settings
+              _enableSmsNotifications = data['sms_enabled'] ?? true;
+              _enableSmsScheduledNotifications = data['sms_scheduled_enabled'] ?? true;
+              _enableSmsApproachingNotifications = data['sms_approaching_enabled'] ?? true;
+              _enableSmsUpdateNotifications = data['sms_update_enabled'] ?? true;
+              _enableSmsStatusNotifications = data['sms_status_enabled'] ?? true;
+              
+              // Push settings
+              _enablePushNotifications = data['push_enabled'] ?? true;
+              _enablePushScheduledNotifications = data['push_scheduled_enabled'] ?? true;
+              _enablePushApproachingNotifications = data['push_approaching_enabled'] ?? true;
+              _enablePushUpdateNotifications = data['push_update_enabled'] ?? true;
+              _enablePushStatusNotifications = data['push_status_enabled'] ?? true;
+              
+              // Email settings
+              _enableEmailNotifications = data['email_enabled'] ?? false;
+              _enableEmailScheduledNotifications = data['email_scheduled_enabled'] ?? false;
+              _enableEmailApproachingNotifications = data['email_approaching_enabled'] ?? false;
+              _enableEmailUpdateNotifications = data['email_update_enabled'] ?? false;
+              _enableEmailStatusNotifications = data['email_status_enabled'] ?? false;
             }
           });
         }
@@ -174,29 +235,122 @@ class _SettingsScreenState extends State<SettingsScreen> {
             'lastUpdated': FieldValue.serverTimestamp(),
           }, SetOptions(merge: true));
 
-        // Handle notification permissions and topic subscription
+          // Handle notification permissions and topic subscription
           if (_enableNotifications) {
             final settings = await _messaging!.requestPermission();
             if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-              await _messaging!.subscribeToTopic('app_notifications');
+              try {
+                final notificationManager = NotificationManager();
+                
+                if (Platform.isIOS) {
+                  // On iOS, we need to wait for APNS token before subscribing to topics
+                  await Future.delayed(const Duration(seconds: 2));
+                  final apnsToken = await _messaging!.getAPNSToken();
+                  if (apnsToken != null) {
+                    await notificationManager.subscribeToTopic('app_notifications');
+                  }
+                } else {
+                  // Android platform
+                  await notificationManager.subscribeToTopic('app_notifications');
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error enabling notifications: $e'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
+              }
             }
-          }  else {
-            await _messaging!.unsubscribeFromTopic('app_notifications');
+          } else {
+            try {
+              final notificationManager = NotificationManager();
+              await notificationManager.unsubscribeFromTopic('app_notifications');
+            } catch (e) {
+              // Handle error silently
+            }
           }
 
-        // Apply theme settings immediately
-        _applyThemeSettings();
+          // Apply theme settings immediately
+          _applyThemeSettings();
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Settings saved successfully'),
-              backgroundColor: Colors.green,
-            ),
+          // Save notification settings in a separate document
+          final notificationSettings = {
+            // SMS notification settings
+            'sms_enabled': _enableSmsNotifications,
+            'sms_scheduled_enabled': _enableSmsScheduledNotifications,
+            'sms_approaching_enabled': _enableSmsApproachingNotifications,
+            'sms_update_enabled': _enableSmsUpdateNotifications,
+            'sms_status_enabled': _enableSmsStatusNotifications,
+            
+            // Push notification settings
+            'push_enabled': _enablePushNotifications,
+            'push_scheduled_enabled': _enablePushScheduledNotifications,
+            'push_approaching_enabled': _enablePushApproachingNotifications,
+            'push_update_enabled': _enablePushUpdateNotifications,
+            'push_status_enabled': _enablePushStatusNotifications,
+            
+            // Email notification settings
+            'email_enabled': _enableEmailNotifications,
+            'email_scheduled_enabled': _enableEmailScheduledNotifications,
+            'email_approaching_enabled': _enableEmailApproachingNotifications,
+            'email_update_enabled': _enableEmailUpdateNotifications,
+            'email_status_enabled': _enableEmailStatusNotifications,
+            
+            'lastUpdated': FieldValue.serverTimestamp(),
+          };
+          
+          await _firestore!
+              .collection('users')
+              .doc(user.uid)
+              .collection('settings')
+              .doc('notifications')
+              .set(notificationSettings, SetOptions(merge: true));
+          
+          // Update notification preferences through the NotificationManager
+          final preferences = NotificationPreferences(
+            enableNotifications: _enableNotifications,
+            enablePush: _enablePushNotifications,
+            enableSms: _enableSmsNotifications,
+            enableEmail: _enableEmailNotifications,
+            channelPreferences: {
+              'scheduled': {
+                'push': _enablePushScheduledNotifications,
+                'sms': _enableSmsScheduledNotifications,
+                'email': _enableEmailScheduledNotifications,
+              },
+              'approaching': {
+                'push': _enablePushApproachingNotifications,
+                'sms': _enableSmsApproachingNotifications,
+                'email': _enableEmailApproachingNotifications,
+              },
+              'update': {
+                'push': _enablePushUpdateNotifications,
+                'sms': _enableSmsUpdateNotifications,
+                'email': _enableEmailUpdateNotifications,
+              },
+              'status': {
+                'push': _enablePushStatusNotifications,
+                'sms': _enableSmsStatusNotifications,
+                'email': _enableEmailStatusNotifications,
+              },
+            },
           );
+          
+          await _notificationManager.updateNotificationSettings(preferences);
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Settings saved successfully'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
         }
-      }
-    } else {
+      } else {
         _applyThemeSettings();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -207,7 +361,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           );
         }
       }
-      } catch (e) {
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -216,7 +370,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
       }
-  } finally {
+    } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -228,6 +382,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _editProfile() async {
     final TextEditingController nameController = TextEditingController(text: _userProfile['name']);
     final TextEditingController phoneController = TextEditingController(text: _userProfile['phone']);
+    final TextEditingController emailController = TextEditingController(text: _userProfile['email']);
 
     await showDialog(
       context: context,
@@ -246,6 +401,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 controller: phoneController,
                 decoration: const InputDecoration(labelText: 'Phone Number'),
                 keyboardType: TextInputType.phone,
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: emailController,
+                decoration: const InputDecoration(labelText: 'Email Address'),
+                keyboardType: TextInputType.emailAddress,
               ),
             ],
           ),
@@ -267,12 +428,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       .update({
                     'name': nameController.text.trim(),
                     'phone': phoneController.text.trim(),
+                    'email': emailController.text.trim(),
                     'lastUpdated': FieldValue.serverTimestamp(),
                   });
 
                   setState(() {
                     _userProfile['name'] = nameController.text.trim();
                     _userProfile['phone'] = phoneController.text.trim();
+                    _userProfile['email'] = emailController.text.trim();
                   });
 
                   if (mounted) {
@@ -289,6 +452,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   setState(() {
                     _userProfile['name'] = nameController.text.trim();
                     _userProfile['phone'] = phoneController.text.trim();
+                    _userProfile['email'] = emailController.text.trim();
                   });
                   if (mounted) {
                     Navigator.pop(context);
@@ -315,6 +479,141 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  /// Sends a test notification to the current user
+  Future<void> _sendTestNotification() async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('You must be logged in to test notifications')),
+        );
+        return;
+      }
+      
+      // Use the notification manager to send a test notification
+      final notificationManager = NotificationManager();
+      await notificationManager.sendTestNotification();
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Test notification sent successfully!')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error sending test notification: $e')),
+      );
+    }
+  }
+
+  /// Test SMS notification
+  Future<void> _testSMSNotification() async {
+    try {
+      final currentUser = _auth?.currentUser;
+      if (currentUser == null) {
+        _showSnackBar('Please sign in to test notifications');
+        return;
+      }
+      
+      // Get user phone number from Firestore
+      final userDoc = await _firestore?.collection('users').doc(currentUser.uid).get();
+      final userData = userDoc?.data();
+      
+      if (userData == null || userData['phoneNumber'] == null) {
+        _showSnackBar('No phone number found. Please update your profile.');
+        return;
+      }
+      
+      final phoneNumber = userData['phoneNumber'];
+      
+      // Show loading dialog
+      _showLoadingDialog('Sending test SMS...');
+      
+      // Send test SMS
+      final result = await _notificationManager.sendTestSMS(
+        phoneNumber: phoneNumber,
+        message: 'Test notification from ORScheduler: ${DateTime.now().toString()}',
+      );
+      
+      // Hide loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+      
+      // Show result
+      if (result) {
+        _showSnackBar('Test SMS sent successfully');
+      } else {
+        _showSnackBar('Failed to send test SMS. Check logs for details.');
+      }
+    } catch (e) {
+      // Hide loading dialog if still showing
+      if (context.mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+      
+      _showSnackBar('Error sending test SMS: $e');
+    }
+  }
+  
+  /// Test push notification
+  Future<void> _testPushNotification() async {
+    try {
+      final currentUser = _auth?.currentUser;
+      if (currentUser == null) {
+        _showSnackBar('Please sign in to test notifications');
+        return;
+      }
+      
+      // Show loading dialog
+      _showLoadingDialog('Sending test push notification...');
+      
+      // Send test push notification via local notification
+      await _notificationManager.sendPushNotification(
+        title: 'Test Notification',
+        body: 'This is a test notification from ORScheduler: ${DateTime.now().toString()}',
+        userId: currentUser.uid,
+      );
+      
+      // Hide loading dialog
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+      
+      _showSnackBar('Test push notification sent');
+    } catch (e) {
+      // Hide loading dialog if still showing
+      if (context.mounted && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+      
+      _showSnackBar('Error sending test push notification: $e');
+    }
+  }
+  
+  /// Show a loading dialog
+  void _showLoadingDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(message),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  /// Show a snackbar with a message
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 
@@ -362,6 +661,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   );
                 },
+              ),
+              ListTile(
+                leading: Icon(
+                  Icons.notifications_active,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                title: const Text('Send Test Notification'),
+                subtitle: const Text('Test the notification system'),
+                trailing: const Icon(Icons.send),
+                onTap: _sendTestNotification,
               ),
             ],
           ),
@@ -416,7 +725,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
-          // Notification Settings Section
+          // Main Notification Settings Section
           _buildSection(
             'Notifications',
             [
@@ -470,6 +779,231 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   color: _enableNotifications
                       ? Theme.of(context).colorScheme.primary
                       : Colors.grey,
+                ),
+              ),
+            ],
+          ),
+          // Push Notification Settings Section
+          _buildSection(
+            'Push Notifications',
+            [
+              SwitchListTile(
+                title: const Text('Enable Push Notifications'),
+                subtitle: const Text('Receive in-app notifications'),
+                value: _enablePushNotifications,
+                onChanged: _enableNotifications ? (value) async {
+                  setState(() => _enablePushNotifications = value);
+                  await _saveSettings();
+                } : null,
+                secondary: Icon(
+                  _enablePushNotifications ? Icons.notifications : Icons.notifications_off,
+                  color: _enableNotifications ? Theme.of(context).colorScheme.primary : Colors.grey,
+                ),
+              ),
+              SwitchListTile(
+                title: const Text('Scheduled Surgeries'),
+                subtitle: const Text('Notifications when surgeries are scheduled'),
+                value: _enablePushScheduledNotifications,
+                onChanged: (_enableNotifications && _enablePushNotifications) ? (value) async {
+                  setState(() => _enablePushScheduledNotifications = value);
+                  await _saveSettings();
+                } : null,
+                secondary: Icon(
+                  Icons.event_available,
+                  color: (_enableNotifications && _enablePushNotifications) 
+                    ? Theme.of(context).colorScheme.primary : Colors.grey,
+                ),
+              ),
+              SwitchListTile(
+                title: const Text('Approaching Surgeries'),
+                subtitle: const Text('Reminders for upcoming surgeries'),
+                value: _enablePushApproachingNotifications,
+                onChanged: (_enableNotifications && _enablePushNotifications) ? (value) async {
+                  setState(() => _enablePushApproachingNotifications = value);
+                  await _saveSettings();
+                } : null,
+                secondary: Icon(
+                  Icons.alarm,
+                  color: (_enableNotifications && _enablePushNotifications) 
+                    ? Theme.of(context).colorScheme.primary : Colors.grey,
+                ),
+              ),
+              SwitchListTile(
+                title: const Text('Updates'),
+                subtitle: const Text('Notifications when surgeries are updated'),
+                value: _enablePushUpdateNotifications,
+                onChanged: (_enableNotifications && _enablePushNotifications) ? (value) async {
+                  setState(() => _enablePushUpdateNotifications = value);
+                  await _saveSettings();
+                } : null,
+                secondary: Icon(
+                  Icons.update,
+                  color: (_enableNotifications && _enablePushNotifications) 
+                    ? Theme.of(context).colorScheme.primary : Colors.grey,
+                ),
+              ),
+              SwitchListTile(
+                title: const Text('Status Changes'),
+                subtitle: const Text('Notifications when surgery status changes'),
+                value: _enablePushStatusNotifications,
+                onChanged: (_enableNotifications && _enablePushNotifications) ? (value) async {
+                  setState(() => _enablePushStatusNotifications = value);
+                  await _saveSettings();
+                } : null,
+                secondary: Icon(
+                  Icons.loop,
+                  color: (_enableNotifications && _enablePushNotifications) 
+                    ? Theme.of(context).colorScheme.primary : Colors.grey,
+                ),
+              ),
+            ],
+          ),
+          // SMS Notification Settings Section
+          _buildSection(
+            'SMS Notifications',
+            [
+              SwitchListTile(
+                title: const Text('Enable SMS Notifications'),
+                subtitle: const Text('Receive text message notifications'),
+                value: _enableSmsNotifications,
+                onChanged: _enableNotifications ? (value) async {
+                  setState(() => _enableSmsNotifications = value);
+                  await _saveSettings();
+                } : null,
+                secondary: Icon(
+                  _enableSmsNotifications ? Icons.sms : Icons.sms_failed,
+                  color: _enableNotifications ? Theme.of(context).colorScheme.primary : Colors.grey,
+                ),
+              ),
+              SwitchListTile(
+                title: const Text('Scheduled Surgeries'),
+                subtitle: const Text('SMS when surgeries are scheduled'),
+                value: _enableSmsScheduledNotifications,
+                onChanged: (_enableNotifications && _enableSmsNotifications) ? (value) async {
+                  setState(() => _enableSmsScheduledNotifications = value);
+                  await _saveSettings();
+                } : null,
+                secondary: Icon(
+                  Icons.event_available,
+                  color: (_enableNotifications && _enableSmsNotifications) 
+                    ? Theme.of(context).colorScheme.primary : Colors.grey,
+                ),
+              ),
+              SwitchListTile(
+                title: const Text('Approaching Surgeries'),
+                subtitle: const Text('SMS reminders for upcoming surgeries'),
+                value: _enableSmsApproachingNotifications,
+                onChanged: (_enableNotifications && _enableSmsNotifications) ? (value) async {
+                  setState(() => _enableSmsApproachingNotifications = value);
+                  await _saveSettings();
+                } : null,
+                secondary: Icon(
+                  Icons.alarm,
+                  color: (_enableNotifications && _enableSmsNotifications) 
+                    ? Theme.of(context).colorScheme.primary : Colors.grey,
+                ),
+              ),
+              SwitchListTile(
+                title: const Text('Updates'),
+                subtitle: const Text('SMS when surgeries are updated'),
+                value: _enableSmsUpdateNotifications,
+                onChanged: (_enableNotifications && _enableSmsNotifications) ? (value) async {
+                  setState(() => _enableSmsUpdateNotifications = value);
+                  await _saveSettings();
+                } : null,
+                secondary: Icon(
+                  Icons.update,
+                  color: (_enableNotifications && _enableSmsNotifications) 
+                    ? Theme.of(context).colorScheme.primary : Colors.grey,
+                ),
+              ),
+              SwitchListTile(
+                title: const Text('Status Changes'),
+                subtitle: const Text('SMS when surgery status changes'),
+                value: _enableSmsStatusNotifications,
+                onChanged: (_enableNotifications && _enableSmsNotifications) ? (value) async {
+                  setState(() => _enableSmsStatusNotifications = value);
+                  await _saveSettings();
+                } : null,
+                secondary: Icon(
+                  Icons.loop,
+                  color: (_enableNotifications && _enableSmsNotifications) 
+                    ? Theme.of(context).colorScheme.primary : Colors.grey,
+                ),
+              ),
+            ],
+          ),
+          // Email Notification Settings Section
+          _buildSection(
+            'Email Notifications',
+            [
+              SwitchListTile(
+                title: const Text('Enable Email Notifications'),
+                subtitle: const Text('Receive email notifications (recommended for important updates)'),
+                value: _enableEmailNotifications,
+                onChanged: _enableNotifications ? (value) async {
+                  setState(() => _enableEmailNotifications = value);
+                  await _saveSettings();
+                } : null,
+                secondary: Icon(
+                  _enableEmailNotifications ? Icons.email : Icons.email_outlined,
+                  color: _enableNotifications ? Theme.of(context).colorScheme.primary : Colors.grey,
+                ),
+              ),
+              SwitchListTile(
+                title: const Text('Scheduled Surgeries'),
+                subtitle: const Text('Emails when surgeries are scheduled'),
+                value: _enableEmailScheduledNotifications,
+                onChanged: (_enableNotifications && _enableEmailNotifications) ? (value) async {
+                  setState(() => _enableEmailScheduledNotifications = value);
+                  await _saveSettings();
+                } : null,
+                secondary: Icon(
+                  Icons.event_available,
+                  color: (_enableNotifications && _enableEmailNotifications) 
+                    ? Theme.of(context).colorScheme.primary : Colors.grey,
+                ),
+              ),
+              SwitchListTile(
+                title: const Text('Approaching Surgeries'),
+                subtitle: const Text('Email reminders for upcoming surgeries'),
+                value: _enableEmailApproachingNotifications,
+                onChanged: (_enableNotifications && _enableEmailNotifications) ? (value) async {
+                  setState(() => _enableEmailApproachingNotifications = value);
+                  await _saveSettings();
+                } : null,
+                secondary: Icon(
+                  Icons.alarm,
+                  color: (_enableNotifications && _enableEmailNotifications) 
+                    ? Theme.of(context).colorScheme.primary : Colors.grey,
+                ),
+              ),
+              SwitchListTile(
+                title: const Text('Updates'),
+                subtitle: const Text('Emails when surgeries are updated'),
+                value: _enableEmailUpdateNotifications,
+                onChanged: (_enableNotifications && _enableEmailNotifications) ? (value) async {
+                  setState(() => _enableEmailUpdateNotifications = value);
+                  await _saveSettings();
+                } : null,
+                secondary: Icon(
+                  Icons.update,
+                  color: (_enableNotifications && _enableEmailNotifications) 
+                    ? Theme.of(context).colorScheme.primary : Colors.grey,
+                ),
+              ),
+              SwitchListTile(
+                title: const Text('Status Changes'),
+                subtitle: const Text('Emails when surgery status changes'),
+                value: _enableEmailStatusNotifications,
+                onChanged: (_enableNotifications && _enableEmailNotifications) ? (value) async {
+                  setState(() => _enableEmailStatusNotifications = value);
+                  await _saveSettings();
+                } : null,
+                secondary: Icon(
+                  Icons.loop,
+                  color: (_enableNotifications && _enableEmailNotifications) 
+                    ? Theme.of(context).colorScheme.primary : Colors.grey,
                 ),
               ),
             ],
@@ -566,6 +1100,83 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ],
           ),
+          // Add additional settings section
+          Card(
+            elevation: 2,
+            margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.more_horiz,
+                        color: Theme.of(context).colorScheme.primary,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Additional Settings',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Test notification feature
+                  Card(
+                    elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Test Notifications',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Send a test notification to verify your notification settings',
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.sms),
+                                label: const Text('Test SMS'),
+                                onPressed: () => _testSMSNotification(),
+                              ),
+                              ElevatedButton.icon(
+                                icon: const Icon(Icons.notifications),
+                                label: const Text('Test Push'),
+                                onPressed: () => _testPushNotification(),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Other settings cards...
+                ],
+              ),
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: Column(
@@ -605,23 +1216,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   /// Builds a section in the settings screen with a title and list of widgets
-  Widget _buildSection(String title, List<Widget> children) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text(
-            title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Theme.of(context).colorScheme.primary,
-              fontWeight: FontWeight.bold,
+  Widget _buildSection(String title, List<Widget> children, {IconData? icon}) {
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                if (icon != null) 
+                  Icon(
+                    icon,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 20,
+                  ),
+                if (icon != null) const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
             ),
-          ),
+            const SizedBox(height: 16),
+            ...children,
+          ],
         ),
-        ...children,
-        const Divider(),
-      ],
+      ),
     );
   }
 

@@ -25,33 +25,37 @@ import 'package:firebase_orscheduler/features/schedule/models/surgery.dart';
 class DayListView extends StatelessWidget {
   /// List of all surgeries to be filtered and displayed
   final List<Surgery> surgeries;
+  
+  /// The date to focus on, allowing navigation between days
+  final DateTime focusedDate;
 
   const DayListView({
     super.key,
     required this.surgeries,
+    required this.focusedDate,
   });
 
   @override
   Widget build(BuildContext context) {
-    final now = DateTime.now();
+    final theme = Theme.of(context);
     
-    // Filter surgeries for today's date only
-    final todaySurgeries = surgeries.where((surgery) {
+    // Filter surgeries for the focused date
+    final focusedDateSurgeries = surgeries.where((surgery) {
       final surgeryDate = surgery.startTime;
-      return surgeryDate.year == now.year &&
-          surgeryDate.month == now.month &&
-          surgeryDate.day == now.day;
+      return surgeryDate.year == focusedDate.year &&
+          surgeryDate.month == focusedDate.month &&
+          surgeryDate.day == focusedDate.day;
     }).toList();
 
     // Organize surgeries by status for display sections
-    final inProgressSurgeries = todaySurgeries
+    final inProgressSurgeries = focusedDateSurgeries
         .where((s) => s.status.toLowerCase() == 'in progress')
         .toList();
-    final upcomingSurgeries = todaySurgeries
+    final upcomingSurgeries = focusedDateSurgeries
         .where((s) => s.status.toLowerCase() == 'scheduled')
         .toList()
       ..sort((a, b) => a.startTime.compareTo(b.startTime));
-    final completedSurgeries = todaySurgeries
+    final completedSurgeries = focusedDateSurgeries
         .where((s) => s.status.toLowerCase() == 'completed')
         .toList();
 
@@ -60,18 +64,59 @@ class DayListView extends StatelessWidget {
         // Date header with current date in formatted style
         SliverToBoxAdapter(
           child: Container(
-            padding: const EdgeInsets.all(16),
-            color: Theme.of(context).primaryColor.withOpacity(0.1),
-            child: Text(
-              DateFormat('EEEE, MMMM d').format(now),
-              style: Theme.of(context).textTheme.titleLarge,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  theme.colorScheme.primary.withOpacity(0.15),
+                  theme.colorScheme.primary.withOpacity(0.05),
+                ],
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  DateFormat('EEEE').format(focusedDate),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                Text(
+                  DateFormat('MMMM d, y').format(focusedDate),
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _buildStatusCounter('In Progress', inProgressSurgeries.length, 
+                        Colors.orange.shade600, Icons.directions_run),
+                    const SizedBox(width: 12),
+                    _buildStatusCounter('Upcoming', upcomingSurgeries.length, 
+                        Colors.blue.shade600, Icons.upcoming),
+                    const SizedBox(width: 12),
+                    _buildStatusCounter('Completed', completedSurgeries.length, 
+                        Colors.green.shade600, Icons.check_circle),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
 
         // In Progress surgeries section - highlighted and elevated
         if (inProgressSurgeries.isNotEmpty) ...[
-          _buildSectionHeader('In Progress'),
+          _buildSectionHeader('In Progress', Icons.directions_run, Colors.orange.shade600),
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) => _buildSurgeryCard(
@@ -86,7 +131,7 @@ class DayListView extends StatelessWidget {
 
         // Upcoming surgeries section - chronologically ordered
         if (upcomingSurgeries.isNotEmpty) ...[
-          _buildSectionHeader('Upcoming'),
+          _buildSectionHeader('Upcoming', Icons.upcoming, Colors.blue.shade600),
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) => _buildSurgeryCard(
@@ -100,7 +145,7 @@ class DayListView extends StatelessWidget {
 
         // Completed surgeries section - with strikethrough styling
         if (completedSurgeries.isNotEmpty) ...[
-          _buildSectionHeader('Completed'),
+          _buildSectionHeader('Completed', Icons.check_circle, Colors.green.shade600),
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (context, index) => _buildSurgeryCard(
@@ -114,26 +159,61 @@ class DayListView extends StatelessWidget {
         ],
 
         // Empty state display when no surgeries are scheduled
-        if (todaySurgeries.isEmpty)
+        if (focusedDateSurgeries.isEmpty)
           SliverFillRemaining(
             child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.event_busy,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No surgeries scheduled for today',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 16,
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.event_busy,
+                        size: 64,
+                        color: theme.colorScheme.primary.withOpacity(0.7),
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 24),
+                    Text(
+                      'No surgeries scheduled for today',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'There are no procedures on the schedule for ${DateFormat('EEEE, MMMM d').format(focusedDate)}',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 16,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 32),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/add-surgery');
+                      },
+                      icon: const Icon(Icons.add),
+                      label: const Text('Schedule a Surgery'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: theme.colorScheme.primary,
+                        foregroundColor: theme.colorScheme.onPrimary,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -141,20 +221,69 @@ class DayListView extends StatelessWidget {
     );
   }
 
+  /// Builds a status counter chip with icon and count
+  Widget _buildStatusCounter(String label, int count, Color color, IconData icon) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  count.toString(),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: color,
+                  ),
+                ),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: color.withOpacity(0.8),
+                  ),
+                ),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Builds a section header with consistent styling
   /// 
   /// Parameters:
   /// - title: The section title to display
-  Widget _buildSectionHeader(String title) {
+  /// - icon: Icon to display next to title
+  /// - color: Accent color for the header
+  Widget _buildSectionHeader(String title, IconData icon, Color color) {
     return SliverToBoxAdapter(
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
-        child: Text(
-          title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 10),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: color,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -173,101 +302,198 @@ class DayListView extends StatelessWidget {
     bool isInProgress = false,
     bool isCompleted = false,
   }) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: isInProgress ? 4 : 1, // Higher elevation for in-progress
-      child: Container(
-        decoration: BoxDecoration(
-          border: isInProgress
-              ? Border.all(
-                  color: _getStatusColor(surgery.status),
-                  width: 2,
-                )
-              : null,
-        ),
-        child: ListTile(
-          contentPadding: const EdgeInsets.all(16),
-          title: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  surgery.surgeryType,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    decoration: isCompleted
-                        ? TextDecoration.lineThrough
-                        : TextDecoration.none,
-                  ),
-                ),
-              ),
-              // Status indicator chip
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: _getStatusColor(surgery.status),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  surgery.status,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              // Time range display
-              Row(
-                children: [
-                  Icon(Icons.access_time,
-                      size: 16, color: Theme.of(context).colorScheme.secondary),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${DateFormat('h:mm a').format(surgery.startTime)} - ${DateFormat('h:mm a').format(surgery.endTime)}',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              // Room information
-              Row(
-                children: [
-                  Icon(Icons.meeting_room,
-                      size: 16, color: Theme.of(context).colorScheme.secondary),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      'Room ${surgery.room.join(", ")}',
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 4),
-              // Surgeon information
-              Row(
-                children: [
-                  Icon(Icons.person,
-                      size: 16, color: Theme.of(context).colorScheme.secondary),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      'Dr. ${surgery.surgeon}',
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+    final theme = Theme.of(context);
+    final statusColor = _getStatusColor(surgery.status);
+    final isPastDue = surgery.startTime.isBefore(DateTime.now()) && 
+                      surgery.status.toLowerCase() == 'scheduled';
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Material(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        elevation: isInProgress ? 4 : 1,
+        child: InkWell(
           onTap: () => _showSurgeryDetails(context, surgery),
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isInProgress 
+                    ? statusColor 
+                    : theme.colorScheme.outline.withOpacity(0.2),
+                width: isInProgress ? 2 : 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                // Status indicator bar
+                Container(
+                  width: 8,
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      bottomLeft: Radius.circular(16),
+                    ),
+                  ),
+                ),
+                
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Top row: Surgery type and status
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                surgery.surgeryType,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  decoration: isCompleted
+                                      ? TextDecoration.lineThrough
+                                      : TextDecoration.none,
+                                  color: isCompleted
+                                      ? theme.colorScheme.onSurface.withOpacity(0.7)
+                                      : theme.colorScheme.onSurface,
+                                ),
+                              ),
+                            ),
+                            // Status indicator chip
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusColor.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: statusColor, width: 1),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: statusColor,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    surgery.status,
+                                    style: TextStyle(
+                                      color: statusColor,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        // Time range display
+                        Wrap(
+                          spacing: 6, // horizontal space between items
+                          runSpacing: 4, // vertical space between lines
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Icon(Icons.access_time,
+                                size: 16, color: theme.colorScheme.primary.withOpacity(0.7)),
+                            Text(
+                              '${DateFormat('h:mm a').format(surgery.startTime)} - ${DateFormat('h:mm a').format(surgery.endTime)}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: theme.colorScheme.onSurface.withOpacity(0.8),
+                              ),
+                            ),
+                            if (isPastDue)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade100,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.warning, size: 12, color: Colors.red.shade700),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      'Delayed',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.red.shade700,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        // Room and Surgeon info
+                        Wrap(
+                          spacing: 12, // horizontal space between items
+                          runSpacing: 8, // vertical space between lines
+                          children: [
+                            // Room information
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.meeting_room,
+                                    size: 16, color: theme.colorScheme.primary.withOpacity(0.7)),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    'Room ${surgery.room.join(", ")}',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: theme.colorScheme.onSurface.withOpacity(0.8),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            // Surgeon information
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.person,
+                                    size: 16, color: theme.colorScheme.primary.withOpacity(0.7)),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    'Dr. ${surgery.surgeon}',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: theme.colorScheme.onSurface.withOpacity(0.8),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
