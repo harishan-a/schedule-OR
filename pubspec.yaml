@@ -46,8 +46,8 @@ flutter:
   assets:
     - assets/images/doctorlogo.png
     - assets/images/
-    - .env
-    - functions/.env
+#    - .env
+#    - functions/.env
 
 flutter_launcher_icons:
   android: "launcher_icon"

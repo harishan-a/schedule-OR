@@ -20,12 +20,16 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-
 import 'package:firebase_orscheduler/shared/widgets/custom_navigation_bar.dart';
 
 /// A screen widget that displays and manages user profile information
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  // NEW: Add an optional isTestMode parameter
+  final bool isTestMode; // NEW
+  const ProfileScreen({
+    Key? key,
+    this.isTestMode = false, // Defaults to false for normal usage
+  }) : super(key: key);
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -34,7 +38,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   // UI state management
   bool _isLoading = true;
-  
+
   // User profile data
   var _firstName = '';
   var _lastName = '';
@@ -42,7 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   var _email = '';
   var _role = '';
   var _department = '';
-  
+
   // Navigation state
   int _selectedIndex = 3; // Profile tab index
 
@@ -53,15 +57,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   /// Loads user profile data from Firestore
-  /// 
+  ///
   /// Fetches both authentication and profile data:
   /// - Basic info from Auth (email)
   /// - Extended info from Firestore (name, role, etc.)
   Future<void> _loadUserData() async {
-    final user = FirebaseAuth.instance.currentUser;
+    if (widget.isTestMode) { // If in test mode, skip Firebase calls.
+      setState(() {
+        // Use local placeholders or defaults
+        _firstName = 'Test';
+        _lastName = 'User';
+        _phoneNumber = '(000) 000-0000';
+        _email = 'test@example.com';
+        _role = 'Developer';
+        _department = 'Engineering';
+        _isLoading = false;
+      });
+      return;
+    }
+    final user = FirebaseAuth.instance.currentUser;  // Only call Firebase if not in test mode
     if (user != null) {
       final userData =
-          await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       setState(() {
         _firstName = userData['firstName'] ?? '';
         _lastName = userData['lastName'] ?? '';
@@ -87,22 +104,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-              child: Column(
-                children: [
-                  // Profile picture section with edit button overlay
-                  _buildProfilePicture(),
-                  const SizedBox(height: 20),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
+        child: Column(
+          children: [
+            // Profile picture section with edit button overlay
+            _buildProfilePicture(),
+            const SizedBox(height: 20),
 
-                  // Profile information section
-                  _buildProfileInformation(),
-                  const SizedBox(height: 30),
+            // Profile information section
+            _buildProfileInformation(),
+            const SizedBox(height: 30),
 
-                  // Action buttons section
-                  _buildActionButtons(),
-                ],
-              ),
-            ),
+            // Action buttons section
+            _buildActionButtons(),
+          ],
+        ),
+      ),
       bottomNavigationBar: CustomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
@@ -116,38 +133,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   /// Builds the profile picture section with edit button
   Widget _buildProfilePicture() {
-    return Stack(
-      children: [
-        // Profile image - currently using placeholder
-        const CircleAvatar(
-          radius: 50, // Fixed size for consistency
-          backgroundImage: NetworkImage('https://via.placeholder.com/150'),
-        ),
-        // Edit button overlay
-        Positioned(
-          bottom: 0,
-          right: 0,
-          child: Container(
-            height: 30,
-            width: 30,
-            decoration: BoxDecoration(
-              color: Colors.blueAccent,
-              shape: BoxShape.circle,
-            ),
-            child: IconButton(
-              icon: const Icon(
-                Icons.camera_alt,
-                color: Colors.white,
-                size: 16, // Small icon for better aesthetics
+    if (widget.isTestMode) {
+      return const CircleAvatar(
+        radius: 50,
+        backgroundColor: Colors.grey,
+        child: Icon(Icons.person, color: Colors.white),
+      );
+    } else {
+      return Stack(
+        children: [
+          // Profile image - currently using placeholder
+          const CircleAvatar(
+            radius: 50, // Fixed size for consistency
+            backgroundImage: NetworkImage('https://via.placeholder.com/150'),
+          ),
+          // Edit button overlay
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              height: 30,
+              width: 30,
+              decoration: const BoxDecoration(
+                color: Colors.blueAccent,
+                shape: BoxShape.circle,
               ),
-              onPressed: () {
-                // Image upload functionality to be implemented
-              },
+              child: IconButton(
+                icon: const Icon(
+                  Icons.camera_alt,
+                  color: Colors.white,
+                  size: 16, // Small icon for better aesthetics
+                ),
+                onPressed: () {
+                  // Image upload functionality to be implemented
+                },
+              ),
             ),
           ),
-        ),
-      ],
-    );
+        ],
+      );
+    }
   }
 
   /// Builds the profile information section
@@ -188,7 +213,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   /// Helper method to build consistent profile information rows
-  /// 
+  ///
   /// Parameters:
   /// - label: The field name or category
   /// - value: The actual value to display
