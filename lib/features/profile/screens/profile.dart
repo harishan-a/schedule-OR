@@ -24,7 +24,6 @@ import 'package:firebase_orscheduler/shared/widgets/custom_navigation_bar.dart';
 
 /// A screen widget that displays and manages user profile information
 class ProfileScreen extends StatefulWidget {
-  // NEW: Add an optional isTestMode parameter
   final bool isTestMode; // NEW
   const ProfileScreen({
     Key? key,
@@ -62,7 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   /// - Basic info from Auth (email)
   /// - Extended info from Firestore (name, role, etc.)
   Future<void> _loadUserData() async {
-    if (widget.isTestMode) { // If in test mode, skip Firebase calls.
+    if (widget.isTestMode) { // If in test mode, skip Firebase calls
       setState(() {
         // Use local placeholders or defaults
         _firstName = 'Test';
