@@ -1,0 +1,223 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "Query%20Recent%20Activity",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "surgeon",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startTime",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "Query%20Upcoming%20Surgeries%20",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "surgeon",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startTime",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "surgeries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "surgeon",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startTime",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "surgeries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "endTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "__name__",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "surgeries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "nurses",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "endTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startTime",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "surgeries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "technologists",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "endTime",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startTime",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "surgeries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "surgeon",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startTime",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "surgeries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "nurses",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startTime",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "surgeries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "technologists",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startTime",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "surgeries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startTime",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "surgeries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "surgeon",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "startTime",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "surgeries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "nurses",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "startTime",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "surgeries",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "technologists",
+          "arrayConfig": "CONTAINS"
+        },
+        {
+          "fieldPath": "startTime",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

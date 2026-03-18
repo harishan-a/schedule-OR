@@ -1,0 +1,11 @@
+patient_name,patient_id,surgery_type,doctor_id,surgeon,start_time,duration,room_id,room,status,notes,nurses,technologists
+"Ahmed Hassan",MRN100001,"Cardiac Surgery",doc1,"Dr. Sarah Patel","2023-12-05T09:00:00",90,room1,"OperatingRoom1","Scheduled","Patient has penicillin allergy","Nurse Maya Johnson|Nurse Robert Chen","Tech Alex Rivera"
+"Jessica Wong",MRN100002,"Orthopedic Surgery",doc2,"Dr. James Wilson","2023-12-05T11:00:00",120,room2,"OperatingRoom2","Scheduled","Patient requires interpreter","Nurse Isabella Garcia|Nurse Kwame Osei","Tech Sanjay Gupta"
+"Carlos Mendez",MRN100003,"Neurosurgery",doc3,"Dr. Maria Rodriguez","2023-12-06T08:00:00",180,room3,"OperatingRoom3","Scheduled","History of cardiac issues","Nurse Leila Chaudry|Nurse Thomas Brooks","Tech Min-Ji Park"
+"Priya Sharma",MRN100004,"General Surgery",doc4,"Dr. David Kim","2023-12-06T11:00:00",60,room4,"OperatingRoom4","Scheduled","Follow-up appointment needed","Nurse Yuki Tanaka|Nurse Maya Johnson","Tech Amir Khoury"
+"Jamal Washington",MRN100005,"Plastic Surgery",doc5,"Dr. Aisha Johnson","2023-12-07T09:00:00",120,room5,"OperatingRoom5","Scheduled","Previous surgery in 2022","Nurse Robert Chen|Nurse Isabella Garcia","Tech Zoe Anderson"
+"Sofia Gonzalez",MRN100006,"Cardiac Surgery",doc6,"Dr. Michael Chen","2023-12-07T13:00:00",90,room1,"OperatingRoom1","Scheduled","","Nurse Kwame Osei|Nurse Leila Chaudry","Tech Marcus Johnson"
+"Wei Zhang",MRN100007,"Orthopedic Surgery",doc7,"Dr. Olivia Williams","2023-12-08T08:00:00",120,room2,"OperatingRoom2","Scheduled","Patient prefers morning appointments","Nurse Thomas Brooks|Nurse Yuki Tanaka","Tech Alex Rivera"
+"Elena Petrov",MRN100008,"Neurosurgery",doc1,"Dr. Sarah Patel","2023-12-08T10:00:00",180,room3,"OperatingRoom3","Scheduled","Diabetic patient - monitor glucose","Nurse Maya Johnson|Nurse Robert Chen","Tech Sanjay Gupta"
+"Omar Abdullah",MRN100009,"General Surgery",doc2,"Dr. James Wilson","2023-12-09T09:00:00",60,room4,"OperatingRoom4","Scheduled","Patient has penicillin allergy","Nurse Isabella Garcia|Nurse Kwame Osei","Tech Min-Ji Park"
+"Fatima Ahmed",MRN100010,"Plastic Surgery",doc3,"Dr. Maria Rodriguez","2023-12-09T11:00:00",90,room5,"OperatingRoom5","Scheduled","Patient requires ASL interpreter","Nurse Leila Chaudry|Nurse Thomas Brooks","Tech Amir Khoury" 

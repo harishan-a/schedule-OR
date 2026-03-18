@@ -1,0 +1,73 @@
+name: firebase_orscheduler
+description: "A new Flutter project."
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.3
+
+dependencies:
+  flutter:
+    sdk: flutter
+  firebase_core: ^3.10.1
+  firebase_auth: ^5.4.1
+  cupertino_icons: ^1.0.2
+  cloud_firestore: ^5.6.2
+  firebase_storage: ^12.3.2
+  firebase_messaging: ^15.2.1
+  firebase_app_check: ^0.3.1+3
+  intl: ^0.19.0
+  multi_select_flutter: ^4.1.3
+  flutter_multiselect: ^1.0.0
+  table_calendar: ^3.0.0
+  calendar_day_view: ^3.3.3
+  syncfusion_flutter_calendar: ^27.2.2
+  flutter_animate: ^4.5.0
+  provider: ^6.1.2
+  sliding_up_panel: ^2.0.0+1
+  dropdown_search: ^5.0.3
+  rxdart: ^0.27.7
+  shared_preferences: ^2.5.1
+  logging: ^1.2.0
+  http: ^0.13.6
+  flutter_dotenv: ^5.1.0
+  flutter_local_notifications: ^15.1.2
+  sendgrid_mailer: ^0.1.3
+  image_picker: ^0.8.7+5
+  cached_network_image: ^3.3.1
+  path: ^1.8.3
+  csv: ^6.0.0
+  file_picker: ^9.2.2
+  path_provider: ^2.1.5
+  share_plus: ^10.1.4
+  # Only include image_cropper on non-web platforms
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/doctorlogo.png
+    - assets/images/
+    - assets/icons/
+    - assets/avatars/
+    - assets/samples/
+    - .env.example
+#    - functions/.env
+
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/app_icon.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/images/app_icon.png"
+    background_color: "#hexcode"
+    theme_color: "#hexcode"

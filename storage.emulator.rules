@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// Permissive rules for local emulator development.
+// NEVER deploy these to production — use storage.rules instead.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}

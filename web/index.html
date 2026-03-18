@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="A new Flutter project.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="firebase_orscheduler">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>firebase_orscheduler</title>
+  <link rel="manifest" href="manifest.json">
+  
+  <!-- Patch for image_cropper_platform_interface -->
+  <script>
+    // This is a workaround for the image_cropper_platform_interface error
+    // The patch will be applied at runtime to modify the problematic code
+    window.imageCropperPatch = {
+      apply: function() {
+        // Return a no-op version of the problematic function
+        // This will be attached to dart objects using JavaScript interop
+        window.disableImageCropper = true;
+      }
+    };
+    window.imageCropperPatch.apply();
+  </script>
+</head>
+<body>
+  <!-- Firebase App (the core Firebase SDK) -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+  <!-- Add Firebase Messaging -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-messaging.js"></script>
+
+  <!-- Local development: connect to Firebase emulators when on localhost -->
+  <script>
+    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+      // Set a global flag so the Dart code knows emulators are configured at JS level
+      window.__useFirebaseEmulators = true;
+
+      // The Firebase compat SDK auth emulator will be connected after
+      // firebase.initializeApp() is called. We use a MutationObserver to
+      // detect when the app is initialized and then connect the emulator.
+      var _emulatorsConnected = false;
+      var _checkInterval = setInterval(function() {
+        try {
+          if (firebase.apps.length > 0 && !_emulatorsConnected) {
+            firebase.auth().useEmulator('http://localhost:9099');
+            console.log('[local-dev] Auth emulator connected (compat SDK)');
+            _emulatorsConnected = true;
+            clearInterval(_checkInterval);
+          }
+        } catch(e) {
+          // App not yet initialized, will retry
+        }
+      }, 100);
+
+      // Safety: stop checking after 30 seconds
+      setTimeout(function() { clearInterval(_checkInterval); }, 30000);
+    }
+  </script>
+
+  <!-- Initialize Firebase and register service worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/firebase-messaging-sw.js')
+          .then(function (registration) {
+            console.log('Service Worker registered with scope:', registration.scope);
+          }).catch(function (error) {
+            console.log('Service Worker registration failed:', error);
+          });
+      });
+    }
+  </script>
+  
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

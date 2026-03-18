@@ -1,0 +1,32 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Default rule - deny access
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+    
+    // Profile images rules - allow users to access their own profile images
+    match /profile_images/{imageId} {
+      // Allow read access to any authenticated user
+      allow read: if request.auth != null;
+      
+      // Allow write access only to the owner of the profile
+      // Filename must start with the user's ID
+      allow write: if request.auth != null && 
+                     imageId.matches(request.auth.uid + '_.*') &&
+                     request.resource.size < 5 * 1024 * 1024 && // 5MB
+                     request.resource.contentType.matches('image/.*');
+                     
+      // Allow users to delete their own images
+      allow delete: if request.auth != null && 
+                      imageId.matches(request.auth.uid + '_.*');
+    }
+    
+    // Default avatar images - allow all authenticated users to read
+    match /avatars/{avatarId} {
+      allow read: if request.auth != null;
+      allow write: if false; // Only allow writing through admin console
+    }
+  }
+}

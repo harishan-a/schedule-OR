@@ -1,0 +1,95 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow public read access to all documents for testing
+    match /{document=**} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Original rules will be applied in addition to the above rule,
+    // but the most permissive rule will take effect
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isUserAuthorized(surgery) {
+      return isAuthenticated() && 
+        (surgery.surgeon == request.auth.token.name ||
+         surgery.nurses.hasAny([request.auth.token.name]) ||
+         surgery.technologists.hasAny([request.auth.token.name]));
+    }
+    
+    function hasRole(roles) {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in roles;
+    }
+    
+    // Allow authenticated users to read and write their own notifications
+    match /user_notifications/{userId} {
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Allow authenticated users to read and write to the central surgery notifications collection
+    match /surgery_notifications/{notificationId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+    
+    // Allow authenticated users to read and write surgeries
+    match /surgeries/{surgeryId} {
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated() && 
+        (isUserAuthorized(resource.data) || 
+         (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'lastUpdated'])));
+      allow delete: if isAuthenticated() && (isUserAuthorized(resource.data) || hasRole(['Admin', 'Surgical Coordinator']));
+    }
+    
+    // Allow authenticated users to read user data
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Allow access to user settings subcollection for all authenticated users
+      match /settings/{document=**} {
+        allow read: if isAuthenticated();
+        allow write: if request.auth.uid == userId;
+      }
+      
+      // Allow access to user notifications subcollection - modified to allow cross-user notifications
+      match /notifications/{notificationId} {
+        allow read: if request.auth.uid == userId;
+        allow write: if isAuthenticated(); // Allow any authenticated user to write notifications
+      }
+    }
+
+    // Resource collections
+    match /rooms/{roomId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole(['Admin', 'Surgical Coordinator']);
+    }
+
+    match /equipment/{equipmentId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole(['Admin', 'Surgical Coordinator']);
+    }
+
+    match /staff/{staffId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole(['Admin', 'HR Manager', 'Surgical Coordinator']);
+    }
+
+    // User preferences
+    match /user_preferences/{userId} {
+      allow read, write: if request.auth.uid == userId;
+    }
+
+    // Resource availability
+    match /resource_availability/{resourceId} {
+      allow read: if isAuthenticated();
+      allow write: if hasRole(['Admin', 'Surgical Coordinator']);
+    }
+  }
+} 

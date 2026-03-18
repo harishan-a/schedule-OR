@@ -1,0 +1,870 @@
+/// A screen that displays detailed information about a specific surgery.
+///
+/// This screen provides a real-time view of surgery details using Firestore streaming,
+/// featuring a modern, clean UI with:
+/// - Material Design 3 components and styling
+/// - Animated transitions and feedback
+/// - Enhanced visual hierarchy and typography
+/// - Responsive layout with proper spacing
+/// - Card-based content organization with elevation
+///
+/// The screen supports both direct model and Firestore data sources,
+/// and includes status update functionality via a floating action button.
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:firebase_orscheduler/features/schedule/screens/schedule_provider.dart';
+import 'package:firebase_orscheduler/features/surgery/screens/edit_surgery.dart';
+
+class SurgeryDetailsScreen extends StatelessWidget {
+  final String surgeryId;
+  final Stream<DocumentSnapshot>? stream;
+
+  const SurgeryDetailsScreen({
+    super.key,
+    required this.surgeryId,
+    this.stream,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    final streamToUse = stream ??
+        FirebaseFirestore.instance
+            .collection('surgeries')
+            .doc(surgeryId)
+            .snapshots();
+
+    return Scaffold(
+      backgroundColor: isDark ? colorScheme.surface : colorScheme.surface,
+      appBar: AppBar(
+        title: const Text('Surgery Details'),
+        centerTitle: true,
+        elevation: 0,
+        scrolledUnderElevation: 2,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: 'Edit Surgery',
+            onPressed: () {
+              // Navigate to edit surgery screen
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EditSurgeryScreen(surgeryId: surgeryId),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+      body: StreamBuilder<DocumentSnapshot>(
+        // stream: FirebaseFirestore.instance
+        //     .collection('surgeries')
+        //     .doc(surgeryId)
+        //     .snapshots(),
+        stream: streamToUse,
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: colorScheme.error,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Error: ${snapshot.error}',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: colorScheme.error,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          if (!snapshot.hasData) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(
+                    color: colorScheme.primary,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Loading surgery details...',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          final data = snapshot.data!.data() as Map<String, dynamic>?;
+          if (data == null) {
+            return Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.folder_off_outlined,
+                    size: 64,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Surgery not found',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'The requested surgery details are not available',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant.withOpacity(0.8),
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            children: [
+              // Drag handle
+              Center(
+                child: Container(
+                  width: 32,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: colorScheme.onSurfaceVariant.withOpacity(0.4),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              // Surgery type and status
+              Card(
+                elevation: 2,
+                shadowColor: colorScheme.shadow.withOpacity(0.3),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        data['surgeryType'] ?? 'Unknown Surgery Type',
+                        style:
+                            Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.onSurface,
+                                ),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildStatusChip(data['status'] ?? 'Unknown'),
+                      if (data['lastUpdated'] != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          'Last updated: ${_formatDateTime(data['lastUpdated'] as Timestamp?)}',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              // Time & Location
+              _buildCard(
+                context,
+                title: 'Time & Location',
+                icon: Icons.schedule,
+                children: [
+                  _buildInfoRow(
+                    context,
+                    icon: Icons.access_time_outlined,
+                    label: 'Start Time',
+                    value: _formatDateTime(data['startTime'] as Timestamp?),
+                  ),
+                  _buildInfoRow(
+                    context,
+                    icon: Icons.timer_outlined,
+                    label: 'End Time',
+                    value: _formatDateTime(data['endTime'] as Timestamp?),
+                  ),
+                  _buildInfoRow(
+                    context,
+                    icon: Icons.room_outlined,
+                    label: 'Operating Room',
+                    value: data['room'] is List
+                        ? (data['room'] as List).join(', ')
+                        : data['room']?.toString() ?? 'N/A',
+                  ),
+                  // Time blocks - Prep time, Cleanup time and Custom blocks
+                  if (data['prepTimeMinutes'] != null &&
+                      data['prepTimeMinutes'] > 0)
+                    _buildInfoRow(
+                      context,
+                      icon: Icons.timer_outlined,
+                      label: 'Preparation Time',
+                      value: '${data['prepTimeMinutes']} minutes',
+                    ),
+                  if (data['cleanupTimeMinutes'] != null &&
+                      data['cleanupTimeMinutes'] > 0)
+                    _buildInfoRow(
+                      context,
+                      icon: Icons.cleaning_services_outlined,
+                      label: 'Cleanup Time',
+                      value: '${data['cleanupTimeMinutes']} minutes',
+                    ),
+                  if (data['customTimeBlocks'] != null &&
+                      (data['customTimeBlocks'] as List).isNotEmpty)
+                    _buildCustomTimeBlocks(
+                        context, data['customTimeBlocks'] as List),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Patient Information
+              _buildCard(
+                context,
+                title: 'Patient Information',
+                icon: Icons.person_outline,
+                children: [
+                  _buildInfoRow(
+                    context,
+                    icon: Icons.badge_outlined,
+                    label: 'Medical Record #',
+                    value: data['medicalRecordNumber'] ?? 'N/A',
+                    isHighlighted: true,
+                  ),
+                  _buildInfoRow(
+                    context,
+                    icon: Icons.person_outline,
+                    label: 'Name',
+                    value: data['patientName'] ?? 'N/A',
+                  ),
+                  _buildInfoRow(
+                    context,
+                    icon: Icons.cake_outlined,
+                    label: 'Age',
+                    value: data['patientAge']?.toString() ?? 'N/A',
+                  ),
+                  _buildInfoRow(
+                    context,
+                    icon: Icons.person_outline,
+                    label: 'Gender',
+                    value: data['patientGender'] ?? 'N/A',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Medical Team
+              _buildCard(
+                context,
+                title: 'Medical Team',
+                icon: Icons.medical_services_outlined,
+                children: [
+                  _buildInfoRow(
+                    context,
+                    icon: Icons.medical_services_outlined,
+                    label: 'Surgeon',
+                    value: data['surgeon'] ?? 'N/A',
+                    isHighlighted: true,
+                  ),
+                  _buildStaffList(context, 'Nurses',
+                      (data['nurses'] as List?)?.cast<String>() ?? []),
+                  _buildStaffList(context, 'Technologists',
+                      (data['technologists'] as List?)?.cast<String>() ?? []),
+                ],
+              ),
+
+              // Equipment section
+              if (data['requiredEquipment'] != null &&
+                  (data['requiredEquipment'] as List).isNotEmpty) ...[
+                const SizedBox(height: 16),
+                _buildCard(
+                  context,
+                  title: 'Required Equipment',
+                  icon: Icons.medical_services_outlined,
+                  children: [
+                    _buildEquipmentList(
+                        context,
+                        (data['requiredEquipment'] as List).cast<String>(),
+                        data['equipmentRequirements'] as List?),
+                  ],
+                ),
+              ],
+
+              if (data['notes']?.isNotEmpty == true ||
+                  data['specialRequirements']?.isNotEmpty == true) ...[
+                const SizedBox(height: 16),
+                _buildCard(
+                  context,
+                  title: 'Additional Information',
+                  icon: Icons.info_outline,
+                  children: [
+                    if (data['notes']?.isNotEmpty == true)
+                      _buildInfoRow(
+                        context,
+                        icon: Icons.note_outlined,
+                        label: 'Notes',
+                        value: data['notes'],
+                      ),
+                    if (data['specialRequirements']?.isNotEmpty == true)
+                      _buildInfoRow(
+                        context,
+                        icon: Icons.warning_outlined,
+                        label: 'Special Requirements',
+                        value: data['specialRequirements'],
+                        isHighlighted: true,
+                      ),
+                  ],
+                ),
+              ],
+              // Bottom padding for FAB
+              const SizedBox(height: 80),
+            ],
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showStatusUpdateDialog(context),
+        icon: const Icon(Icons.update_outlined),
+        label: const Text('Update Status'),
+        elevation: 2,
+      ),
+    );
+  }
+
+  Widget _buildCard(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required List<Widget> children,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Card(
+      elevation: 1,
+      shadowColor: colorScheme.shadow.withOpacity(0.2),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  icon,
+                  size: 20,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.onSurface,
+                      ),
+                ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Divider(
+                color: colorScheme.outlineVariant,
+              ),
+            ),
+            ...children,
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(
+    BuildContext context, {
+    required IconData icon,
+    required String label,
+    required String value,
+    bool isHighlighted = false,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            icon,
+            size: 20,
+            color: isHighlighted
+                ? colorScheme.primary
+                : colorScheme.onSurfaceVariant,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight:
+                            isHighlighted ? FontWeight.bold : FontWeight.normal,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: colorScheme.onSurface,
+                        fontWeight:
+                            isHighlighted ? FontWeight.bold : FontWeight.normal,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStaffList(
+      BuildContext context, String title, List<String> staff) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+          ),
+          if (staff.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                'No staff assigned',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurfaceVariant.withOpacity(0.8),
+                      fontStyle: FontStyle.italic,
+                    ),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: staff
+                    .map((person) => Chip(
+                          avatar: Icon(
+                            Icons.person_outline,
+                            size: 18,
+                            color: colorScheme.primary,
+                          ),
+                          label: Text(
+                            person,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                  color: colorScheme.onSurface,
+                                ),
+                          ),
+                          backgroundColor: colorScheme.surfaceContainerHighest,
+                          side: BorderSide(
+                            color: colorScheme.outline.withOpacity(0.2),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                        ))
+                    .toList(),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusChip(String status) {
+    return Builder(
+      builder: (context) {
+        final color = _getStatusColor(status);
+
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: color.withOpacity(0.3),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                _getStatusIcon(status),
+                size: 16,
+                color: color,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                status,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Color _getStatusColor(String status) {
+    return switch (status.toLowerCase()) {
+      'scheduled' => Colors.blue,
+      'in progress' => Colors.orange,
+      'completed' => Colors.green,
+      'cancelled' => Colors.red,
+      _ => Colors.grey,
+    };
+  }
+
+  IconData _getStatusIcon(String status) {
+    return switch (status.toLowerCase()) {
+      'scheduled' => Icons.schedule_outlined,
+      'in progress' => Icons.sync_outlined,
+      'completed' => Icons.check_circle_outlined,
+      'cancelled' => Icons.cancel_outlined,
+      _ => Icons.help_outline,
+    };
+  }
+
+  void _showStatusUpdateDialog(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.update_outlined,
+              color: colorScheme.primary,
+              size: 24,
+            ),
+            const SizedBox(width: 12),
+            const Text('Update Surgery Status'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _buildStatusOption(
+              context,
+              status: 'Scheduled',
+              icon: Icons.schedule_outlined,
+              color: Colors.blue,
+            ),
+            const SizedBox(height: 8),
+            _buildStatusOption(
+              context,
+              status: 'In Progress',
+              icon: Icons.sync_outlined,
+              color: Colors.orange,
+            ),
+            const SizedBox(height: 8),
+            _buildStatusOption(
+              context,
+              status: 'Completed',
+              icon: Icons.check_circle_outlined,
+              color: Colors.green,
+            ),
+            const SizedBox(height: 8),
+            _buildStatusOption(
+              context,
+              status: 'Cancelled',
+              icon: Icons.cancel_outlined,
+              color: Colors.red,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusOption(
+    BuildContext context, {
+    required String status,
+    required IconData icon,
+    required Color color,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        leading: Icon(icon, color: color),
+        title: Text(
+          status,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: colorScheme.onSurface,
+              ),
+        ),
+        tileColor: color.withOpacity(isDark ? 0.12 : 0.08),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: color.withOpacity(0.2),
+            width: 1.5,
+          ),
+        ),
+        onTap: () => _updateStatus(context, status),
+      ),
+    );
+  }
+
+  Future<void> _updateStatus(BuildContext context, String newStatus) async {
+    try {
+      // Use the correct SurgeryProvider class from features/schedule/screens/schedule_provider.dart
+      final surgeryProvider =
+          Provider.of<SurgeryProvider>(context, listen: false);
+
+      // Use SurgeryProvider to update status (which handles notifications)
+      await surgeryProvider.updateSurgeryStatus(surgeryId, newStatus);
+
+      if (context.mounted) {
+        Navigator.pop(context);
+
+        // Small delay to ensure any previous SnackBars are properly dismissed
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Text('Status updated to $newStatus'),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: _getStatusColor(newStatus),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (context.mounted) {
+        Navigator.pop(context);
+
+        // Small delay to ensure any previous SnackBars are properly dismissed
+        await Future.delayed(const Duration(milliseconds: 100));
+
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text('Error updating status: $e'),
+                  ),
+                ],
+              ),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  String _formatDateTime(Timestamp? timestamp) {
+    if (timestamp == null) return 'N/A';
+    final date = timestamp.toDate();
+    return DateFormat('MMM d, y  h:mm a').format(date);
+  }
+
+  /// Builds a display of custom time blocks
+  Widget _buildCustomTimeBlocks(BuildContext context, List timeBlocks) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8, top: 8),
+          child: Text(
+            'Custom Time Blocks',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: timeBlocks.map<Widget>((block) {
+            final name = block['name'] ?? 'Custom Block';
+            final duration = block['durationMinutes']?.toString() ?? '0';
+
+            return Padding(
+              padding: const EdgeInsets.only(left: 24, bottom: 4),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.timer_outlined,
+                    size: 16,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '$name: $duration minutes',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurface,
+                        ),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  /// Builds a list of required equipment
+  Widget _buildEquipmentList(BuildContext context, List<String> equipmentIds,
+      List<dynamic>? requirements) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    // Get equipment name mapping
+    final equipmentMap = _getEquipmentNameMap();
+
+    // Try to match requirements with IDs if available
+    Map<String, Map<String, dynamic>> equipmentDetails = {};
+    if (requirements != null) {
+      for (var req in requirements) {
+        if (req is Map &&
+            req.containsKey('equipmentId') &&
+            req.containsKey('equipmentName')) {
+          // Add explicit type casting to fix the error
+          equipmentDetails[req['equipmentId'].toString()] =
+              Map<String, dynamic>.from(req as Map);
+        }
+      }
+    }
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: equipmentIds.map((id) {
+        // Get name from equipment details if available
+        String displayName = id.toString();
+        bool isRequired = true;
+
+        // First try to get name from the equipment map
+        if (equipmentMap.containsKey(id)) {
+          displayName = equipmentMap[id]!;
+        }
+        // If not found, try to get from equipment details
+        else if (equipmentDetails.containsKey(id.toString())) {
+          final details = equipmentDetails[id.toString()]!;
+          displayName = details['equipmentName'] ?? id.toString();
+          isRequired = details['isRequired'] ?? true;
+        }
+
+        return Chip(
+          avatar: Icon(
+            Icons.medical_services_outlined,
+            size: 16,
+            color:
+                isRequired ? colorScheme.primary : colorScheme.onSurfaceVariant,
+          ),
+          label: Text(
+            displayName,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurface,
+                  fontWeight: isRequired ? FontWeight.bold : FontWeight.normal,
+                ),
+          ),
+          backgroundColor: isRequired
+              ? colorScheme.primaryContainer.withOpacity(0.5)
+              : colorScheme.surfaceContainerHighest,
+          side: BorderSide(
+            color: isRequired
+                ? colorScheme.primary.withOpacity(0.5)
+                : colorScheme.outline.withOpacity(0.2),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  /// Returns a mapping of equipment IDs to their human-readable names
+  Map<String, String> _getEquipmentNameMap() {
+    return {
+      'E001': 'Anesthesia Machine',
+      'E002': 'Patient Monitor',
+      'E003': 'Surgical Table',
+      'E004': 'Defibrillator',
+      'E005': 'Surgical Lights',
+      'E006': 'Electrosurgical Unit',
+      'E007': 'Suction Machine',
+      'E008': 'Ultrasound Machine',
+      'E009': 'Surgical Microscope',
+      'E010': 'Surgical Robot',
+    };
+  }
+}
